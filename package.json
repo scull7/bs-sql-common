@@ -1,0 +1,30 @@
+{
+  "name": "bs-sql-common",
+  "version": "0.1.0",
+  "description": "A common interface common for SQL drivers.",
+  "scripts": {
+    "build": "bsb -make-world",
+    "start": "bsb -make-world -w",
+    "clean": "bsb -clean-world"
+  },
+  "keywords": [
+    "BuckleScript",
+    "reason",
+    "reasonml",
+    "mysql",
+    "databases",
+    "node"
+  ],
+  "bugs": "https://github.com/scull7/bs-sql-common/issues",
+  "main": "src/SqlWrapper.bs.js",
+  "homepage": "https://github.com/scull7/bs-sql-common",
+  "repository": "git@github.com:scull7/bs-sql-common.git",
+  "author": "Nathan Sculli <scull7@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "bs-platform": "^2.1.0",
+  },
+  "devDependencies": {
+    "@glennsl/bs-jest": "^0.3.3"
+  }
+}

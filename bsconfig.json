@@ -1,0 +1,24 @@
+{
+  "name": "bs-sql-driver-wrapper",
+  "version": "0.1.0",
+  "package-specs": {
+    "module": "commonjs",
+    "in-source": true
+  },
+  "suffix": ".bs.js",
+  "sources": [
+    "src",
+    {
+      "dir": "examples",
+      "type": "dev"
+    },
+    {
+      "dir": "__tests__",
+      "type": "dev"
+    }
+  ],
+  "bs-dev-dependencies": [ "@glennsl/bs-jest" ],
+  "bs-dependencies": [],
+  "bsc-flags": [ "-bs-no-version-header", "-bs-super-errors" ],
+  "refmt": 3
+}
