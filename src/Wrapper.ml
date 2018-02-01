@@ -1,7 +1,5 @@
 type sql = string
 
-type conn = Connection.t
-
 type node_style_err = exn Js.Nullable.t
 type result_data = Js.Json.t
 type result_meta = Result.column_data Js.Array.t Js.Nullable.t
@@ -22,11 +20,11 @@ module Query = struct
     namedPlaceholders: Js.boolean;
   > Js.t
 
-  external raw : conn -> sql -> query_cb -> unit = "query"
+  external raw : 'a -> sql -> query_cb -> unit = "query"
   [@@bs.send]
-  external execute : conn -> 'a unnamed_params -> query_cb -> unit = "execute"
+  external execute : 'a -> 'b unnamed_params -> query_cb -> unit = "execute"
   [@@bs.send]
-  external execute_named : conn -> 'a named_params -> query_cb -> unit
+  external execute_named : 'a -> 'b named_params -> query_cb -> unit
   = "execute"
   [@@bs.send]
 
