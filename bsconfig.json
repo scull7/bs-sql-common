@@ -1,5 +1,5 @@
 {
-  "name": "bs-sql-driver-wrapper",
+  "name": "bs-sql-common",
   "version": "0.1.0",
   "package-specs": {
     "module": "commonjs",
