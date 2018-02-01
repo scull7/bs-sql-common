@@ -27,3 +27,4 @@ a Bucklescript ignores
 *.log
 .bsb.lock
 tests/test.data
+src/*.js
