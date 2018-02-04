@@ -10,10 +10,16 @@ let with_named_params conn sql params cb =
   Wrapper.execute conn sql (`ParamsNamed (Js.Nullable.return params)) cb
 
 module Promise = struct
+
+  type resolved =
+    | Mutation of Result.mutation
+    | Select of Result.select
+
   let handler resolve reject response =
     match response with
     | Response.Error e -> reject e [@bs]
-    | any -> resolve any [@bs]
+    | Response.Mutation m -> resolve (Mutation m) [@bs]
+    | Response.Select s -> resolve (Select s) [@bs]
 
   let raw conn sql =
     Js.Promise.make (fun ~resolve ~reject ->
