@@ -1,3 +1,6 @@
+module Error = Error
+module Response = Response
+
 let raw = Wrapper.query
 
 let with_params conn sql params cb =
