@@ -2,7 +2,7 @@ type sql = string
 
 type node_style_err = exn Js.Nullable.t
 type result_data = Js.Json.t
-type result_meta = Result.column_data Js.Array.t Js.Nullable.t
+type result_meta = Result.Select.column_data Js.Array.t Js.Nullable.t
 type query_cb = node_style_err -> result_data -> result_meta -> unit
 
 

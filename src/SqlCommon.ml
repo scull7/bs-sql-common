@@ -11,15 +11,15 @@ let with_named_params conn sql params cb =
 
 module Promise = struct
 
-  type resolved =
-    | Mutation of Result.mutation
-    | Select of Result.select
+  type mutation = Result.Mutation.t
+
+  type select = Result.Select.t
 
   let handler resolve reject response =
     match response with
     | Response.Error e -> reject e [@bs]
-    | Response.Mutation m -> resolve (Mutation m) [@bs]
-    | Response.Select s -> resolve (Select s) [@bs]
+    | Response.Mutation m -> resolve (Result.ResultMutation m) [@bs]
+    | Response.Select s -> resolve (Result.ResultSelect s) [@bs]
 
   let raw conn sql =
     Js.Promise.make (fun ~resolve ~reject ->
