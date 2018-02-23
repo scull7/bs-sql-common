@@ -9,6 +9,10 @@ let with_params conn sql params cb =
 let with_named_params conn sql params cb =
   SqlCommonWrapper.execute conn sql (`ParamsNamed (Js.Nullable.return params)) cb
 
+let batch_insert conn table columns rows cb =
+  let sql = {j|INSERT INTO $table ? VALUES ?|j} in
+  with_params conn sql [|columns; rows|] cb
+
 module Promise = struct
 
   type mutation = SqlCommonResult.Mutation.t
@@ -24,6 +28,10 @@ module Promise = struct
   let raw conn sql =
     Js.Promise.make (fun ~resolve ~reject ->
       raw conn sql (handler resolve reject))
+
+  let batch_insert conn table columns rows =
+    Js.Promise.make (fun ~resolve ~reject ->
+      batch_insert conn table columns rows (handler resolve reject))
 
   let with_params conn sql params =
     Js.Promise.make (fun ~resolve ~reject ->
