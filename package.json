@@ -1,6 +1,6 @@
 {
   "name": "bs-sql-common",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "A common interface common for SQL drivers.",
   "scripts": {
     "build": "bsb -make-world",
@@ -22,9 +22,9 @@
   "author": "Nathan Sculli <scull7@gmail.com>",
   "license": "MIT",
   "dependencies": {
-    "bs-platform": "^2.1.0"
+    "bs-platform": "^2.2.1"
   },
   "devDependencies": {
-    "@glennsl/bs-jest": "^0.3.3"
+    "@glennsl/bs-jest": "^0.4.2"
   }
 }
