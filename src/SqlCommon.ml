@@ -1,25 +1,25 @@
-module Error = Error
-module Response = Response
+module Error = SqlCommonError
+module Response = SqlCommonResponse
 
-let raw = Wrapper.query
+let raw = SqlCommonWrapper.query
 
 let with_params conn sql params cb =
-  Wrapper.execute conn sql (`ParamsUnnamed (Js.Nullable.return params)) cb
+  SqlCommonWrapper.execute conn sql (`ParamsUnnamed (Js.Nullable.return params)) cb
 
 let with_named_params conn sql params cb =
-  Wrapper.execute conn sql (`ParamsNamed (Js.Nullable.return params)) cb
+  SqlCommonWrapper.execute conn sql (`ParamsNamed (Js.Nullable.return params)) cb
 
 module Promise = struct
 
-  type mutation = Result.Mutation.t
+  type mutation = SqlCommonResult.Mutation.t
 
-  type select = Result.Select.t
+  type select = SqlCommonResult.Select.t
 
   let handler resolve reject response =
     match response with
     | Response.Error e -> reject e [@bs]
-    | Response.Mutation m -> resolve (Result.ResultMutation m) [@bs]
-    | Response.Select s -> resolve (Result.ResultSelect s) [@bs]
+    | Response.Mutation m -> resolve (SqlCommonResult.ResultMutation m) [@bs]
+    | Response.Select s -> resolve (SqlCommonResult.ResultSelect s) [@bs]
 
   let raw conn sql =
     Js.Promise.make (fun ~resolve ~reject ->

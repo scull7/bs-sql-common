@@ -1,19 +1,19 @@
 type sql = string
 
 type response =
-  | Mutation of Result.Mutation.t
-  | Select of Result.Select.t
+  | Mutation of SqlCommonResult.Mutation.t
+  | Select of SqlCommonResult.Select.t
   | Error of exn
 
 module Promise = struct
   let selectOrError = function
-    | Result.ResultMutation _ -> failwith "unexpected_mutation_result"
-    | Result.ResultSelect s -> Js.Promise.resolve s
+    | SqlCommonResult.ResultMutation _ -> failwith "unexpected_mutation_result"
+    | SqlCommonResult.ResultSelect s -> Js.Promise.resolve s
 
   module Select = struct
     let rows s = Js.Promise.(
       selectOrError s
-      |> then_ (fun x -> x |> Result.Select.getRows |> resolve)
+      |> then_ (fun x -> x |> SqlCommonResult.Select.getRows |> resolve)
     )
 
     let decode decoder s = Js.Promise.(

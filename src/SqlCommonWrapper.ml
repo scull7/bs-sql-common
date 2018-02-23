@@ -2,7 +2,7 @@ type sql = string
 
 type node_style_err = exn Js.Nullable.t
 type result_data = Js.Json.t
-type result_meta = Result.Select.column_data Js.Array.t Js.Nullable.t
+type result_meta = SqlCommonResult.Select.column_data Js.Array.t Js.Nullable.t
 type query_cb = node_style_err -> result_data -> result_meta -> unit
 
 
@@ -45,14 +45,14 @@ end
 
 
 let parse results fields =
-  match Result.parse results fields with
-    | ResultMutation m -> Response.Mutation m
-    | ResultSelect s -> Response.Select s
+  match SqlCommonResult.parse results fields with
+    | ResultMutation m -> SqlCommonResponse.Mutation m
+    | ResultSelect s -> SqlCommonResponse.Select s
 
 let transform err results fields =
   match Js.Nullable.to_opt err with
     | None -> parse results fields
-    | Some e -> Response.Error e
+    | Some e -> SqlCommonResponse.Error e
 
 let handler cb err results fields = cb (transform err results fields)
 
