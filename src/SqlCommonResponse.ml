@@ -1,8 +1,11 @@
 type sql = string
 
+type mutation = SqlCommonResult.Mutation.t
+type select = SqlCommonResult.Select.t
+
 type response =
-  | Mutation of SqlCommonResult.Mutation.t
-  | Select of SqlCommonResult.Select.t
+  | Mutation of mutation
+  | Select of select
   | Error of exn
 
 module Promise = struct
