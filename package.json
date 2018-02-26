@@ -5,7 +5,10 @@
   "scripts": {
     "build": "bsb -make-world",
     "start": "bsb -make-world -w",
-    "clean": "bsb -clean-world"
+    "clean": "bsb -clean-world",
+    "coverage": "nyc report --temp-directory=coverage --reporter=text-lcov | coveralls",
+    "test": "yarn run clean; yarn run build; jest --coverage && yarn run coverage",
+    "watch:jest": "jest --coverage --watchAll"
   },
   "keywords": [
     "BuckleScript",
@@ -15,6 +18,12 @@
     "databases",
     "node"
   ],
+  "jest": {
+    "testPathIgnorePatterns": [
+      "/node_modules",
+      "<rootDir>/__tests__/TestUtil*"
+    ]
+  },
   "bugs": "https://github.com/scull7/bs-sql-common/issues",
   "main": "src/SqlWrapper.bs.js",
   "homepage": "https://github.com/scull7/bs-sql-common",
@@ -26,6 +35,10 @@
     "sqlstring": "^2.3.1"
   },
   "devDependencies": {
-    "@glennsl/bs-jest": "^0.4.2"
+    "@glennsl/bs-jest": "^0.4.2",
+    "@glennsl/bs-json": "^1.1.2",
+    "coveralls": "^3.0.0",
+    "mysql2": "^1.5.2",
+    "nyc": "^11.4.1"
   }
 }

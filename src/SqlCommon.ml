@@ -13,16 +13,21 @@ let batch_insert conn ?batch_size ~table ~columns ~rows cb =
   SqlCommonBatch.insert conn ?batch_size ~table ~columns ~rows cb
 
 module Promise = struct
-
   type mutation = SqlCommonResult.Mutation.t
 
   type select = SqlCommonResult.Select.t
 
+  module Result = struct
+    type t =
+      | Mutation of mutation
+      | Select of select
+  end
+
   let handler resolve reject response =
     match response with
     | Response.Error e -> reject e [@bs]
-    | Response.Mutation m -> resolve (SqlCommonResult.ResultMutation m) [@bs]
-    | Response.Select s -> resolve (SqlCommonResult.ResultSelect s) [@bs]
+    | Response.Mutation m -> resolve (Result.Mutation m) [@bs]
+    | Response.Select s -> resolve (Result.Select s) [@bs]
 
   let raw conn sql =
     Js.Promise.make (fun ~resolve ~reject ->

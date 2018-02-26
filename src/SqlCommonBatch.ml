@@ -58,7 +58,7 @@ let iterate batch_size fn rows last next =
   let rest = Belt_Array.slice rows ~offset:batch_size ~len:len
   in
   (* Trampoline, in case the connection driver is synchronous *)
-  let _ = Js.Global.setTimeout (fun ()->
+  let _ = Js.Global.setTimeout (fun () ->
     fn batch (fun resp ->
       let result = match resp with
       | Response.Error e -> Error (Response.Error e)
