@@ -13,8 +13,11 @@
       "type": "dev"
     }
   ],
-  "bs-dev-dependencies": [ "@glennsl/bs-jest" ],
-  "bs-dependencies": [ "@glennsl/bs-json" ],
+  "bs-dev-dependencies": [
+    "@glennsl/bs-jest",
+    "@glennsl/bs-json"
+  ],
+  "bs-dependencies": [],
   "bsc-flags": [ "-bs-no-version-header", "-bs-super-errors" ],
   "refmt": 3
 }
