@@ -17,8 +17,8 @@ describe "Test Promise based API" (fun () ->
     |> SqlCommon.Promise.pipe_with_params "SELECT ? AS search" [|"%schema"|]
     |> then_ (fun results ->
       match results with
-      | SqlCommon.Promise.Result.Mutation _ -> failwith "unexpected_mutation"
-      | SqlCommon.Promise.Result.Select { rows; _ } ->
+      | SqlCommonResponse.Promise.Result.Mutation _ -> failwith "unexpected_mutation"
+      | SqlCommonResponse.Promise.Result.Select { rows; _ } ->
         Belt_Array.map rows (fun x -> x |> decoder |> get_search)
         |> Expect.expect
         |> Expect.toBeSupersetOf [|"%schema"|]

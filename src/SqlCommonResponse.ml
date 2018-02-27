@@ -9,6 +9,17 @@ type response =
   | Error of exn
 
 module Promise = struct
+  module Result = struct
+    type t =
+      | Mutation of mutation
+      | Select of select
+  end
+  let handler resolve reject resp =
+    match resp with
+    | Error e -> reject e [@bs]
+    | Mutation m -> resolve (Result.Mutation m) [@bs]
+    | Select s -> resolve (Result.Select s) [@bs]
+
   let selectOrError = function
     | SqlCommonResult.ResultMutation _ -> failwith "unexpected_mutation_result"
     | SqlCommonResult.ResultSelect s -> Js.Promise.resolve s
