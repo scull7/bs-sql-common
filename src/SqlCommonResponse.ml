@@ -21,8 +21,8 @@ module Promise = struct
     | Select s -> resolve (Result.Select s) [@bs]
 
   let selectOrError = function
-    | SqlCommonResult.ResultMutation _ -> failwith "unexpected_mutation_result"
-    | SqlCommonResult.ResultSelect s -> Js.Promise.resolve s
+    | Result.Mutation _ -> failwith "unexpected_mutation_result"
+    | Result.Select s -> Js.Promise.resolve s
 
   module Select = struct
     let rows s = Js.Promise.(
