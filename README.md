@@ -46,8 +46,6 @@ it should be the same with any SqlCommon compatible driver bindings.
 
 #### Standard Query Method
 
-##### Reason syntax
-
 ```reason
 let conn = MySql.Connection.make(~host="127.0.0.1", ~port=3306, ~user="root", ());
 
@@ -65,24 +63,7 @@ SqlCommon.raw(
 MySql.Connection.close(conn);
 ```
 
-##### OCaml syntax
-
-```ocaml
-let conn = MySql.Connection.make ~host:"127.0.0.1" ~port:3306 ~user:"root" ()
-
-let _ = SqlCommon.raw conn "SHOW DATABASES" (fun r ->
-  match r with
-  | Response.Error e -> Js.log2 "ERROR: " e
-  | Response.Select s -> Js.log2 "SELECT: " s
-  | Response.Mutation m -> Js.log2 "MUTATION: " m
-)
-
-let _ = MySql.Connection.close conn
-```
-
 #### Prepared Statements - Named Placeholders
-
-##### Reason syntax
 
 ```reason
 let conn =
@@ -99,28 +80,7 @@ SqlCommon.with_named_params(conn, "SELECT :x + :y as z", {"x": 1, "y": 2}, resul
 MySql.Connection.close(conn);
 ```
 
-##### OCaml syntax
-
-```ocaml
-let conn = MySql.Connection.make ~host:"127.0.0.1" ~port:3306 ~user:"root" ()
-
-let logThenClose label x =
-  let _ = Js.log2 label x in
-  MySql.Connection.close conn
-
-let sql2 = "SELECT :x + :y as z"
-let params2 = [%bs.obj {x = 1; y = 2}]
-let _ = SqlCommon.with_named_params conn sql2 params2 (fun r ->
-  match r with
-  | Response.Error e -> logThenClose "ERROR: " e
-  | Response.Select s -> logThenClose "SELECT: " s
-  | Response.Mutation m -> logThenClose "MUTATION: " m
-)
-```
-
 #### Prepared Statements - Un-named Placeholders
-
-##### Reason syntax
 
 ```reason
 let conn = MySql.Connection.make(~host="127.0.0.1", ~port=3306, ~user="root", ());
@@ -143,26 +103,7 @@ SqlCommon.with_params(
 );
 ```
 
-##### OCaml syntax
-
-```ocaml
-let conn = MySql.Connection.make ~host:"127.0.0.1" ~port:3306 ~user:"root" ()
-
-let logThenClose label x =
-  let _ = Js.log2 label x in
-  MySql.Connection.close conn
-
-let _ = SqlCommon.with_params conn "SELECT 1 + ? + ? as result" [|5; 6|] (fun r ->
-  match r with
-  | Response.Error e -> logThenClose "ERROR: " e
-  | Response.Select s -> logThenClose "SELECT: " s
-  | Response.Mutation m -> logThenClose "MUTATION: " m
-)
-```
-
 ### Promise Interface
-
-##### Reason syntax
 
 ```reason
 let conn = MySql.Connection.make(~host="127.0.0.1", ~port=3306, ~user="root", ());
@@ -183,25 +124,6 @@ Js.Promise.resolve(conn)
        Js.Promise.resolve((-1))
      }
    );
-```
-
-##### Ocaml syntax
-
-```ocaml
-let conn = MySql.Connection.make ~host:"127.0.0.1" ~port:3306 ~user:"root" ()
-
-let _ = Js.Promise.resolve(conn)
-|> SqlCommon.Promise.pipe_with_params "SELECT ? as search" [| "%schema" |]
-|> Js.Promise.then_ (fun value ->
-    let _ = Js.log value in
-    Js.Promise.resolve(1)
-  )
-|> MySql.Connection.Promise.close conn
-|> Js.Promise.catch (fun err ->
-    let _ = Js.log2("Failure!!!", err) in
-    let _ = MySql.Connection.close conn in
-    Js.Promise.resolve(-1)
-  )
 ```
 
 [bs-mysql2]: https://github.com/scull7/bs-mysql2
