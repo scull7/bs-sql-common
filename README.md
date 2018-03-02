@@ -2,7 +2,7 @@
 [![Build Status](https://www.travis-ci.org/scull7/bs-sql-common.svg?branch=master)](https://www.travis-ci.org/scull7/bs-sql-common)
 [![Coverage Status](https://coveralls.io/repos/github/scull7/bs-sql-common/badge.svg?branch=master)](https://coveralls.io/github/scull7/bs-sql-common?branch=master)
 
-# bs-sql-wrapper
+# bs-sql-common
 A common interface for SQL-based Node.js drivers.
 
 ## Why?
