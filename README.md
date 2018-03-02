@@ -23,6 +23,20 @@ several production projects.
 - [ ] Connection pooling
 - [ ] [Custom Streams][mysql2-custom-streams]
 
+## Installation
+
+Inside of a BuckleScript project:
+```sh
+yarn install --save bs-sql-common
+```
+
+Then add `bs-sql-common` to your `bs-dependencies` in your `bsconfig.json`
+```json
+{
+  "bs-dependencies": [ "bs-sql-common" ]
+}
+```
+
 ## Usage
 
 In all of the examples the [bs-mysql2] bindings are used, however,
