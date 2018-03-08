@@ -1,105 +1,86 @@
 
-module Response = SqlCommonResponse
-
 external sqlformat : string -> 'a Js.Array.t -> string = "format"
 [@@bs.module "sqlstring"]
 
-let raw = SqlCommonWrapper.query
-
-type 'a iteration =
-  | Iterate of 'a array * Response.mutation
-  | Error of Response.response
-
-let empty_mutation: Response.mutation = {
-  affected_rows = 0;
-  insert_id = None;
-  info = Some("SQLCOMMON_BATCH_INSERT");
-  server_status = None;
-  warning_status = 0;
-  changed_rows = 0;
+type 'a iteration = {
+  rows: 'a array;
+  count: int;
+  last_insert_id: int;
 }
 
-let unexpected_select = Response.Error (Failure "unexpected_select_result")
+let iteration rows count last_insert_id = { rows; count; last_insert_id; }
 
-let update_mutation (prev : Response.mutation) (current : Response.mutation): Response.mutation =
-  let affected_rows = prev.affected_rows + current.affected_rows in
-  let changed_rows = prev.changed_rows + current.changed_rows
-  in
-  { current with
-    affected_rows = affected_rows;
-    changed_rows =  changed_rows;
-    info = prev.info;
-  }
-
-let rollback conn cb res =
-  raw conn "ROLLBACK" (fun resp ->
-    match resp with
-    | Response.Error e -> cb (Response.Error e)
-    | Response.Select _ -> failwith "rollback :: Unexpected Select Response"
-    | Response.Mutation _ -> cb res
+let db_call ~execute ~sql ?params ~fail ~ok _ =
+  let _ = execute ~sql ?params (fun res ->
+    match res with
+    | `Error e -> fail e
+    | `Mutation ((count:int), (id:int)) -> ok count id
   )
-
-let rollback_on_error conn cb res =
-  let r = rollback conn cb in
-  match res with
-  | Response.Error e -> r (Response.Error e)
-  | Response.Select _ -> r unexpected_select
-  | Response.Mutation _ -> cb res
-
-let commit conn cb res =
-  raw conn "COMMIT" (rollback_on_error conn (fun _ -> cb res))
-
-let finished conn cb res =
-  rollback_on_error conn (commit conn cb) res
-
-let iterate batch_size fn rows last next =
-  let len = Belt_Array.length rows in
-  let batch = Belt_Array.slice rows ~offset:0 ~len:batch_size in
-  let rest = Belt_Array.slice rows ~offset:batch_size ~len:len
-  in
-  (* Trampoline, in case the connection driver is synchronous *)
-  let _ = Js.Global.setTimeout (fun () ->
-    fn batch (fun resp ->
-      let result = match resp with
-      | Response.Error e -> Error (Response.Error e)
-      | Response.Select _ -> Error unexpected_select
-      | Response.Mutation m -> Iterate (rest, (last m))
-      in
-      next result
-    )
-  ) 0
   in ()
 
-let rec run batch_size fn finished iteration =
-  let next = run batch_size fn finished in
-  match iteration with
-  | Error err -> finished err
-  | Iterate (rows, prev) ->
-    match rows with
-    | [||] -> finished (Response.Mutation prev)
-    | r -> iterate batch_size fn r (update_mutation prev) next
+let rollback ~execute ~fail ~ok _ = db_call ~execute ~sql:"ROLLBACK" ~fail ~ok ()
 
-let insert_batch conn table columns rows cb =
-  let sql_tmpl = {j|INSERT INTO $table (??) VALUES ?|j} in
+let commit ~execute ~fail ~ok _ =
+  let rollback = (fun err -> rollback ~execute
+    ~fail:(fun err -> fail err)
+    ~ok:(fun _ _ -> fail err)
+    ()
+  )
+  in
+  db_call ~execute ~sql:"COMMIT" ~fail:rollback ~ok ()
+
+let insert_batch ~execute ~table ~columns ~rows ~fail ~ok _ =
   let params = [|columns; rows|] in
   (*
     Have to use this because MySQL2 doesn't properly
     handle the table name escaping
    *)
-  let sql = sqlformat sql_tmpl params in
-  SqlCommonWrapper.execute conn sql (`ParamsUnnamed (Js.Nullable.return params)) cb
+  let sql = sqlformat {j|INSERT INTO $table (??) VALUES ?|j} params in
+  db_call ~execute ~sql ~fail ~ok ()
 
-let insert conn ?batch_size ~table ~columns ~rows cb =
+let iterate ~insert_batch ~batch_size ~rows ~fail ~ok _ =
+  let len = Belt_Array.length rows in
+  let batch = Belt_Array.slice rows ~offset:0 ~len:batch_size in
+  let rest = Belt_Array.slice rows ~offset:batch_size ~len:len in
+  let execute = (fun () -> insert_batch
+    ~rows:batch
+    ~fail
+    ~ok: (fun count id -> ok (iteration rest count id))
+    ()
+  )
+  in
+  (* Trampoline, in case the connection driver is synchronous *)
+  let _ = Js.Global.setTimeout execute 0 in ()
+
+let rec run ~batch_size ~iterator ~fail ~ok iteration =
+  let next = run ~batch_size ~iterator ~fail ~ok in
+  let { rows; count; last_insert_id; } = iteration in
+  match rows with
+  | [||] -> ok count last_insert_id
+  | r -> iterator ~batch_size ~rows:r ~fail ~ok:next ()
+
+let insert execute ?batch_size ~table ~columns ~rows user_cb =
   let batch_size =
     match batch_size with
     | None -> 1000
     | Some(s) -> s
   in
-  let fn = insert_batch conn table columns in
-  let finished = finished conn cb
-  in
-  raw conn "START TRANSACTION" (fun resp ->
-    match resp with
-    | Response.Error e -> cb (Response.Error e)
-    | _ -> run batch_size fn finished (Iterate (rows, empty_mutation))
+  let fail = (fun e -> user_cb (`Error e)) in
+  let complete = (fun count id ->
+    let ok = (fun _ _ -> user_cb (`Mutation (count, id)))
+    in
+    commit ~execute ~fail ~ok ()
   )
+  in
+  let insert_batch = insert_batch ~execute ~table ~columns in
+  let iterator = iterate ~insert_batch in
+  let ok = (fun _ _ ->
+    run
+      ~batch_size
+      ~iterator
+      ~fail
+      ~ok:complete
+      (iteration rows 0 0)
+  )
+  in
+  db_call ~execute ~sql:"START TRANSACTION" ~fail ~ok ()

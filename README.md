@@ -10,7 +10,41 @@ A common interface for SQL-based Node.js drivers.
 To provide a common interface for MySQL, PostgreSQL and sqlite
 implementations.  
 
-Hopefully the interface presented feels conventional for ReasonML / OCaml.
+### Version 2
+A rewrite of the entire package to expose it as a Functor that can accept
+any module which implements the `Queryable` interface.
+
+```ocaml
+module type Queryable = sig
+  type t
+  type meta
+  type rows = Js.Json.t array
+
+  type params =
+    [ `Named of Js.Json.t
+    | `Anonymous of Js.Json.t
+    ] option
+
+  type callback = exn Js.Nullable.t -> Js.Json.t -> Js.Json.t array -> unit
+
+  val close : t -> unit
+
+  val parse_response :
+    Js.Json.t ->
+    Js.Json.t array ->
+    [> `Error of exn
+    |  `Mutation of int * int
+    |  `Select of rows * meta
+    ]
+
+  val execute : t -> string -> params -> callback -> unit
+end
+```
+
+The new interface provided through the Functor is simplified as it only contains
+six methods and uses Polymorphic variants for return states so that the user no
+longer requires structural knowledge of the SqlCommon package for response
+parsing.
 
 ## Status
 
@@ -37,93 +71,134 @@ Then add `bs-sql-common` to your `bs-dependencies` in your `bsconfig.json`
 }
 ```
 
+Then add a `bs-sql-common` compatible package to your repository or create your
+own. All of the examples use the [`bs-mysql2`][bs-mysql2] package, here are the
+requirements to use that package:
+
+```sh
+yarn install --save bs-mysql2Â
+```
+```json
+{
+  "bs-dependencies": [ "bs-sql-common", "bs-mysql2" ]
+}
+```
+```ocaml
+  module Db = SqlCommon.Make_store(MySql.Connection)
+
+  let conn = MySql.Connection.make ~host="127.0.0.1" ~port=3306 ~user="root" ()
+
+  Db.query conn ~sql:"SHOW DATABASES" (fun res ->
+    match res with
+    | `Error e -> Js.log2 "ERROR: " e
+    | `Select (rows, meta) -> Js.log3 "SELECT: " rows meta
+  )
+```
+
 ## Usage
 
-In all of the examples the [bs-mysql2] bindings are used, however,
-it should be the same with any SqlCommon compatible driver bindings.
+***Note:*** All of the examples use the [`bs-mysql2`][bs-mysql2] package as the
+connection provider. Any other provider should have the same behavior with
+differing connection creation requirements.
+
+### Create a connection and customized module
+
+The following connection and module will be use within the rest of the examples.
+```reason
+module Db = SqlCommon.Make_store(MySql.Connection);
+
+let conn = MySql.Connection.make(~host="127.0.0.1", ~port=3306, ~user="root", ());
+```
+Assume the following statement occurs at the end of each example.
+```reason
+Db.close(conn);
+```
 
 ### Standard Callback Interface
 
 #### Standard Query Method
 
 ```reason
-let conn = MySql.Connection.make(~host="127.0.0.1", ~port=3306, ~user="root", ());
 
-SqlCommon.raw(
-  conn,
-  "SHOW DATABASES",
-  (r) =>
-    switch r {
-    | Response.Error(e) => Js.log2("ERROR: ", e)
-    | Response.Select(s) => Js.log2("SELECT: ", s)
-    | Response.Mutation(m) => Js.log2("MUTATION: ", m)
-    }
+Db.query(~sql="SHOW DATABASES", (res) =>
+  switch res {
+  | `Error e => Js.log2("ERROR; ", e)
+  | `Select (rows, meta) => Js.log3("SELECT: ", rows, meta)
+  }
 );
 
-MySql.Connection.close(conn);
+Db.mutate(~sql="INSERT INTO test (foo) VALUES (\"bar\")", (res) =>
+  switch res {
+  | `Error e => Js.log2("ERROR; ", e)
+  | `Mutation (count, id) => Js.log3("MUTATION: ", count, id)
+  }
+)
 ```
 
 #### Prepared Statements - Named Placeholders
 
 ```reason
-let conn =
-  MySql.Connection.make(~host="127.0.0.1", ~port=3306, ~user="root", ());
+let json = Some(`Named(
+  Json.Encode.(object_([
+  ("x", int(1)),
+  ("y", int(2)),
+  ]))
+));
 
-SqlCommon.with_named_params(conn, "SELECT :x + :y as z", {"x": 1, "y": 2}, result =>
-  switch result {
-  | Error(e) => Js.log2("ERROR: ", e)
-  | Mutation(m) => Js.log2("MUTATION: ", m)
-  | Select(s) => Js.log2("SELECT: ", s)
+Db.query(~sql:"SELECT :x + :y AS z", ?params, (res) =>
+  switch res {
+  | `Error e => Js.log2("ERROR; ", e)
+  | `Select (rows, meta) => Js.log3("SELECT: ", rows, meta)
   }
 );
 
-MySql.Connection.close(conn);
+Db.mutate(~sql:"INSERT INTO test (foo, bar) VALUES (:x, :y)", ?params, (res) =>
+  switch res {
+  | `Error e => Js.log2("ERROR; ", e)
+  | `Mutation (count, id) => Js.log3("MUTATION: ", count, id)
+  }
+)
 ```
 
-#### Prepared Statements - Un-named Placeholders
+#### Prepared Statements - Positional Placeholders
 
 ```reason
-let conn = MySql.Connection.make(~host="127.0.0.1", ~port=3306, ~user="root", ());
+let params = Some(`Anonymous(
+  Json.Encode.(array(int, [|5,6|]))
+));
 
-let logThenClose = (label, x) => {
-  let _ = Js.log2(label, x);
-  MySql.Connection.close(conn)
-};
-
-SqlCommon.with_params(
-  conn,
-  "SELECT 1 + ? + ? as result",
-  [|5, 6|],
-  (r) =>
-    switch r {
-    | Response.Error(e) => logThenClose("ERROR: ", e)
-    | Response.Select(s) => logThenClose("SELECT: ", s)
-    | Response.Mutation(m) => logThenClose("MUTATION: ", m)
-    }
+Db.query(~sql:"SELECT 1 + ? + ? AS result", ?params, (res) =>
+  switch res {
+  | `Error e => Js.log2("ERROR; ", e)
+  | `Select (rows, meta) => Js.log3("SELECT: ", rows, meta)
+  }
 );
+
+Db.mutate(~sql:"INSERT INTO test (foo, bar) VALUES (?, ?)", ?params, (res) =>
+  switch res {
+  | `Error e => Js.log2("ERROR; ", e)
+  | `Mutation (count, id) => Js.log3("MUTATION: ", count, id)
+  }
+)
 ```
 
 ### Promise Interface
 
 ```reason
-let conn = MySql.Connection.make(~host="127.0.0.1", ~port=3306, ~user="root", ());
-
-Js.Promise.resolve(conn)
-|> SqlCommon.Promise.pipe_with_params("SELECT ? as search", [|"%schema"|])
-|> Js.Promise.then_(
-     (value) => {
-       let _ = Js.log(value);
-       Js.Promise.resolve(1)
-     }
-   )
-|> MySql.Connection.Promise.close(conn)
-|> Js.Promise.catch(
-     (err) => {
-       let _ = Js.log2(("Failure!!!", err));
-       let _ = MySql.Connection.close(conn);
-       Js.Promise.resolve((-1))
-     }
-   );
+let params = Some(`Anonymous(
+  Json.Encode.(array(int, [|"%schema"|]))
+));
+Db.query(conn, ~sql="SELECT ? AS search", ?params)
+|> Js.Promise.then_(((rows, meta)) => {
+  Js.log3("SELECT: ", rows, meta);
+  Db.close(conn);
+  Js.Promise.resolve(1);
+})
+|> Js.Promise.catch((err) => {
+  Js.log2("Failure!!!", err);
+  Db.close(conn);
+  Js.Promise.resolve(-1);
+});
 ```
 
 [bs-mysql2]: https://github.com/scull7/bs-mysql2
