@@ -1,28 +1,50 @@
 module type Queryable = sig
-  type t
+  type connection
   type meta
   type rows = Js.Json.t array
 
-  type params = [ `Named of Js.Json.t | `Anonymous of Js.Json.t ] option
+  type params =
+    [ `Named of Js.Json.t
+    | `Positional of Js.Json.t
+    ] option
 
-  type callback = exn Js.Nullable.t -> Js.Json.t -> Js.Json.t array -> unit
+  type callback =
+    [ `Error of exn
+    | `Mutation of int * int
+    | `Select of rows * meta
+    ] ->
+    unit
 
-  val close : t -> unit
+  val close : connection -> unit
 
-  val parse_response :
-    Js.Json.t->
-    Js.Json.t array ->
-    [> `Error of exn | `Mutation of int * int | `Select of rows * meta ]
+  val connect :
+      ?host:string ->
+      ?port:int ->
+      ?user:string ->
+      ?password:string ->
+      ?database:string ->
+      unit -> connection
 
-  val execute : t -> string -> params -> callback -> unit
+  val execute : connection -> string -> params -> callback -> unit
 end
 
 module type Make_store = sig
-  type t
   type connection
-  type params = [ `Named of Js.Json.t | `Anonymous of Js.Json.t array ] option
+  type error
+  type params =
+    [ `Named of Js.Json.t
+    | `Positional of Js.Json.t array
+    ] option
 
   val close : connection -> unit
+
+  val connect :
+      ?host:string ->
+      ?port:int ->
+      ?user:string ->
+      ?password:string ->
+      ?database:string ->
+      unit -> connection
 
   val query :
     connection ->
@@ -44,40 +66,43 @@ module type Make_store = sig
     rows:Js.Json.t ->
     ([> `Error of exn | `Mutation of int * int] -> unit) ->
     unit
+
 end
 
-module Make_store(Connection: Queryable) = struct
+module Make_sql(Driver: Queryable) = struct
 
-  type connection = Connection.t
+  type connection = Driver.connection
   type sql = string
   type params = Js.Json.t
 
-  let close conn = Connection.close conn
+  let close = Driver.close
+  let connect = Driver.connect
 
-  let error_or error success err data meta =
-    match (Js.Nullable.to_opt err) with
-    | Some e -> error (`Error e)
-    | None -> success (Connection.parse_response data meta)
+  let invalid_response_mutation = Failure {|
+      SqlCommonError - ERR_UNEXPECTED_MUTATION (99999)
+      Invalid Response: Expected Select got Mutation
+    |}
+
+  let invalid_response_select = Failure {|
+    SqlCommonError - ERR_UNEXPECTED_MUTATION (99999)
+    Invalid Response: Expected Mutation got Select
+  |}
 
   let query conn ~sql ?params cb =
-    let success = (fun res ->
+    Driver.execute conn sql params (fun res ->
       match res with
       | `Select (data, meta) -> cb (`Select (data, meta))
-      | `Mutation _ -> cb (`Error (Failure "invalid_response_mutation"))
+      | `Mutation _ -> cb (`Error invalid_response_mutation)
       | `Error e -> cb (`Error e)
     )
-    in
-    Connection.execute conn sql params (error_or cb success)
 
   let mutate conn ~sql ?params cb =
-    let success = (fun res ->
+    Driver.execute conn sql params (fun res ->
       match res with
-      | `Select _ -> cb (`Error (Failure "invalid_response_select"))
+      | `Select _ -> cb (`Error invalid_response_select)
       | `Mutation (changed, last_id)-> cb (`Mutation (changed, last_id))
       | `Error e -> cb (`Error e)
     )
-    in
-    Connection.execute conn sql params (error_or cb success)
 
   let mutate_batch conn ?batch_size ~table ~columns ~rows cb =
     SqlCommonBatch.insert (mutate conn) ?batch_size ~table ~columns ~rows cb
@@ -87,14 +112,14 @@ module Make_store(Connection: Queryable) = struct
     val query :
       connection ->
       sql:string ->
-      ?params:[ `Named of Js.Json.t | `Anonymous of Js.Json.t ] ->
+      ?params:[ `Named of Js.Json.t | `Positional of Js.Json.t ] ->
       unit ->
-      (Connection.rows * Connection.meta) Js.Promise.t
+      (Driver.rows * Driver.meta) Js.Promise.t
 
     val mutate :
       connection ->
       sql:string ->
-      ?params:[ `Named of Js.Json.t | `Anonymous of Js.Json.t ] ->
+      ?params:[ `Named of Js.Json.t | `Positional of Js.Json.t ] ->
       unit ->
       (int * int) Js.Promise.t
 

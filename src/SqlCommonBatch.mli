@@ -12,7 +12,7 @@ val insert :
   ) ->
   ?batch_size:int ->
   table:string ->
-  columns:'d array ->
-  rows: 'd array ->
+  columns:'b array ->
+  rows: 'b array ->
   ([> `Error of exn | `Mutation of int * int] -> unit) ->
   unit

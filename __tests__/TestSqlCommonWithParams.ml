@@ -1,6 +1,6 @@
 open Jest
 
-module Sql = SqlCommon.Make_store(TestUtil.Connection)
+module Sql = SqlCommon.Make_sql(MySql2)
 
 type result = {
   result: int;
@@ -28,7 +28,7 @@ describe "Test parameter interpolation" (fun () ->
     let name = "Expect parameters to be substituted properly" in
     testAsync name (fun finish ->
       let next = expect name 12 decoder finish in
-      let params = Some(`Anonymous (Json.Encode.array Json.Encode.int [|5;6|]))
+      let params = Some(`Positional (Json.Encode.array Json.Encode.int [|5;6|]))
       in
       Sql.query conn ~sql:"SELECT 1 + ? + ? AS result" ?params next
     )

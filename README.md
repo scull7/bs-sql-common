@@ -22,7 +22,7 @@ module type Queryable = sig
 
   type params =
     [ `Named of Js.Json.t
-    | `Anonymous of Js.Json.t
+    | `Positional of Js.Json.t
     ] option
 
   type callback = exn Js.Nullable.t -> Js.Json.t -> Js.Json.t array -> unit
@@ -163,7 +163,7 @@ Db.mutate(~sql:"INSERT INTO test (foo, bar) VALUES (:x, :y)", ?params, (res) =>
 #### Prepared Statements - Positional Placeholders
 
 ```reason
-let params = Some(`Anonymous(
+let params = Some(`Positional(
   Json.Encode.(array(int, [|5,6|]))
 ));
 
@@ -185,7 +185,7 @@ Db.mutate(~sql:"INSERT INTO test (foo, bar) VALUES (?, ?)", ?params, (res) =>
 ### Promise Interface
 
 ```reason
-let params = Some(`Anonymous(
+let params = Some(`Positional(
   Json.Encode.(array(int, [|"%schema"|]))
 ));
 Db.query(conn, ~sql="SELECT ? AS search", ?params)

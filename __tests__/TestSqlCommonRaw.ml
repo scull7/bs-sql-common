@@ -5,12 +5,12 @@ type simple = {
   code: string;
 }
 
-module Sql = SqlCommon.Make_store(TestUtil.Connection)
+module Sql = SqlCommon.Make_sql(MySql2)
 
 let () =
 describe "Raw SQL Query Test" (fun () ->
   let conn = TestUtil.connect () in
-  let _ = afterAll (fun _ -> TestUtil.Connection.close conn) in
+  let _ = afterAll (fun _ -> Sql.close conn) in
 
   testAsync "Expect a test database to be listed" (fun finish ->
     Sql.query conn ~sql:"SHOW DATABASES" (fun res ->

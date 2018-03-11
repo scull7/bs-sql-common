@@ -15,7 +15,8 @@
   ],
   "bs-dev-dependencies": [
     "@glennsl/bs-jest",
-    "@glennsl/bs-json"
+    "@glennsl/bs-json",
+    "bs-mysql2"
   ],
   "bs-dependencies": [],
   "bsc-flags": [ "-bs-no-version-header", "-bs-super-errors" ],
