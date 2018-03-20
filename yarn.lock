@@ -22,6 +22,10 @@
   dependencies:
     jest "^22.0.4"
 
+"@glennsl/bs-json@^1.2.0":
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/@glennsl/bs-json/-/bs-json-1.2.0.tgz#8a2175458cf425614d20bb5542a2eb92b09bd4fc"
+
 abab@^1.0.4:
   version "1.0.4"
   resolved "https://registry.yarnpkg.com/abab/-/abab-1.0.4.tgz#5faad9c2c07f60dd76770f71cf025b62a63cfd4e"
@@ -448,9 +452,9 @@ browser-resolve@^1.11.2:
   dependencies:
     resolve "1.1.7"
 
-bs-mysql2@^3.0.1:
-  version "3.0.1"
-  resolved "https://registry.yarnpkg.com/bs-mysql2/-/bs-mysql2-3.0.1.tgz#e6181cca35b12817d7e33e70362b409aaf2d6a0f"
+bs-mysql2@^3.0.2:
+  version "3.0.2"
+  resolved "https://registry.yarnpkg.com/bs-mysql2/-/bs-mysql2-3.0.2.tgz#4ccfe53b3aff43a0b94c4ef68e816ffe59a2b21c"
   dependencies:
     mysql2 "^1.5.1"
 
