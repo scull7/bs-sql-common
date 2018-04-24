@@ -67,6 +67,19 @@ describe "Raw SQL Query Test Sequence" (fun () ->
     )
   );
 
+  testAsync "Expect a mutation result for an INSERT query" (fun finish ->
+    Sql.mutate conn ~sql:"INSERT INTO test.simple (code) VALUES ('bar'), ('baz')" (fun resp ->
+      match resp with
+      | `Error e -> let _ = Js.log e in finish (fail "see log")
+      | `Mutation (count, id) ->
+        let affected_rows = count == 2 in
+        let insert_id = id > 0 in
+        Expect.expect [|affected_rows; insert_id|]
+        |> Expect.toBeSupersetOf [|true; true|]
+        |> finish
+    )
+  );
+
   testAsync "Expect a SELECT NULL to return an empty array" (fun finish ->
     let decoder = Json.Decode.dict (Json.Decode.nullable Json.Decode.string) in
     Sql.query conn ~sql:"SELECT NULL FROM test.simple WHERE false" (fun res ->
@@ -80,7 +93,7 @@ describe "Raw SQL Query Test Sequence" (fun () ->
       )
   );
 
-  testAsync "Expect a SELECT * to respond with all the columns" (fun finish ->
+  testAsync "Expect a SELECT with one parameter to respond with one column" (fun finish ->
     let decoder json = Json.Decode.({
      id = json |> field "id" int;
      code = json |> field "code" string;
@@ -90,7 +103,8 @@ describe "Raw SQL Query Test Sequence" (fun () ->
       | [||] -> failwith "empty"
       | _ -> failwith "unknown"
     in
-    Sql.query conn ~sql:"SELECT * FROM test.simple" (fun res ->
+    let params = Some(`Positional (Json.Encode.array Json.Encode.int [|1|])) in
+    Sql.query conn ~sql:"SELECT * FROM test.simple WHERE test.simple.id = ?" ?params (fun res ->
       match res with
       | `Error e -> let _ = Js.log e in finish (fail "see log")
       | `Select (rows, _) ->
@@ -98,6 +112,22 @@ describe "Raw SQL Query Test Sequence" (fun () ->
         |> pick
         |> Expect.expect
         |> Expect.toBeSupersetOf [|true; true|]
+        |> finish
+    )
+  );
+
+  testAsync "Expect a SELECT * to respond with 3 rows" (fun finish ->
+    let decoder json = Json.Decode.({
+     id = json |> field "id" int;
+     code = json |> field "code" string;
+    }) in
+    Sql.query conn ~sql:"SELECT * FROM test.simple" (fun res ->
+      match res with
+      | `Error e -> let _ = Js.log e in finish (fail "see log")
+      | `Select (rows, _) ->
+        Belt_Array.map rows decoder
+        |> Expect.expect
+        |> Expect.toHaveLength 3
         |> finish
     )
   );

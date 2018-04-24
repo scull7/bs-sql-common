@@ -53,13 +53,14 @@ describe "Test parameter interpolation" (fun () ->
   testAsync "Expect a SELECT with two parameters to fail if not batched" (fun finish ->
     let params = Some(`Positional ( jsonIntMatrix [|[|1;2|]|])) in
     Sql.query conn ~sql:"SELECT * FROM test.simple WHERE test.simple.id IN (?)" ?params (fun res ->
-      match res with
-      (* @todo check to see if correct error*)
-      (* @todo there must be an easier way of just passing *)
-      | `Error e -> (true |> Expect.expect |> Expect.toBe true |> finish)
-      | `Select (_, _) ->
-        fail "A select with an IN should have been rejected."
-        |> finish
+    match res with
+    | `Select (_, _) ->
+      fail "A select with an IN should have been rejected."
+      |> finish
+    | `Error e ->
+      match e with
+      | SqlCommon.InvalidQuery s -> Expect.expect s |> Expect.toContainString "ERR_INVALID_QUERY" |> finish
+      | _ -> fail "Unexpected failure mode" |> finish
     )
   );
 );

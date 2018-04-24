@@ -1,3 +1,5 @@
+exception InvalidQuery of string
+
 module type Queryable = sig
   type connection
   type meta
@@ -88,10 +90,10 @@ module Make_sql(Driver: Queryable) = struct
     Invalid Response: Expected Mutation got Select
   |}
 
-  let invalid_query_because_of_in = Failure {|
+  let invalid_query_because_of_in = InvalidQuery("
     SqlCommonError - ERR_INVALID_QUERY (99999)
     Do not use 'IN' with non-batched operations - use a batch operation instead
-  |}
+  ")
 
   let string_contains_in str =
     let re = [%re "/\\bin\\b/i"] in
