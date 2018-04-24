@@ -84,17 +84,34 @@ module Make_sql(Driver: Queryable) = struct
     |}
 
   let invalid_response_select = Failure {|
-    SqlCommonError - ERR_UNEXPECTED_MUTATION (99999)
+    SqlCommonError - ERR_UNEXPECTED_SELECT (99999)
     Invalid Response: Expected Mutation got Select
   |}
 
-  let query conn ~sql ?params cb =
+  let invalid_query_because_of_in = Failure {|
+    SqlCommonError - ERR_INVALID_QUERY (99999)
+    Do not use 'IN' with non-batched operations - use a batch operation instead
+  |}
+
+  let string_contains_in str =
+    let re = [%re "/\\bin\\b/i"] in
+    let re_result = Js.Re.exec str re in
+    match re_result with
+    | None -> false
+    | Some _ -> true
+
+  let query_exec conn ~sql ?params cb =
     Driver.execute conn sql params (fun res ->
       match res with
       | `Select (data, meta) -> cb (`Select (data, meta))
       | `Mutation _ -> cb (`Error invalid_response_mutation)
       | `Error e -> cb (`Error e)
     )
+
+  let query conn ~sql ?params cb =
+    match (string_contains_in sql) with
+    | true -> cb (`Error invalid_query_because_of_in)
+    | false -> query_exec conn ~sql ?params cb
 
   let mutate conn ~sql ?params cb =
     Driver.execute conn sql params (fun res ->

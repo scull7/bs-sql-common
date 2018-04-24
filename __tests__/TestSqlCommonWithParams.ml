@@ -2,6 +2,8 @@ open Jest
 
 module Sql = SqlCommon.Make_sql(MySql2)
 
+external jsonIntMatrix : int array array -> Js.Json.t = "%identity"
+
 type result = {
   result: int;
 }
@@ -45,6 +47,19 @@ describe "Test parameter interpolation" (fun () ->
       let params = Some(`Named json)
       in
       Sql.query conn ~sql:"SELECT :x + :y AS result" ?params next
+    )
+  );
+
+  testAsync "Expect a SELECT with two parameters to fail if not batched" (fun finish ->
+    let params = Some(`Positional ( jsonIntMatrix [|[|1;2|]|])) in
+    Sql.query conn ~sql:"SELECT * FROM test.simple WHERE test.simple.id IN (?)" ?params (fun res ->
+      match res with
+      (* @todo check to see if correct error*)
+      (* @todo there must be an easier way of just passing *)
+      | `Error e -> (true |> Expect.expect |> Expect.toBe true |> finish)
+      | `Select (_, _) ->
+        fail "A select with an IN should have been rejected."
+        |> finish
     )
   );
 );
