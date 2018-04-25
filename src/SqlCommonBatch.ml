@@ -45,7 +45,7 @@ let commit ~execute ~fail ~ok _ =
   in
   db_call ~execute ~sql:"COMMIT" ~fail:rollback ~ok ()
 
-let insert_batch ~execute ~table ~columns ~rows ~fail ~ok _ =
+let insert_batch ~execute ~table ~columns ~rows ~fail ~ok =
   let params = [|columns; rows|] in
   (*
     Have to use this because MySQL2 doesn't properly
@@ -133,6 +133,32 @@ let query execute ?batch_size ~sql params user_cb =
     | Some(s) -> s
   in
   let fail = (fun e -> user_cb (`Error e)) in
+  let complete = (fun data meta ->
+    let ok = (fun _ _ -> user_cb (`Select (data, meta)))
+    in
+    commit ~execute ~fail ~ok ()
+  ) in
+  let query_batch = query_batch ~execute ~sql params in
+  let iterator_query = iterate_query ~query_batch in
+  let ok = (fun _ _ ->
+    run_query
+      ~batch_size
+      ~iterator_query
+      ~fail
+      ~ok:complete
+      iteration_query params (Js.Dict.empty ()) (Js.Dict.empty ())
+  )
+  in
+  db_call ~execute ~sql:"START TRANSACTION" ~fail ~ok ()
+
+
+(* let query execute ?batch_size ~sql params user_cb =
+  let batch_size =
+    match batch_size with
+    | None -> 1000
+    | Some(s) -> s
+  in
+  let fail = (fun e -> user_cb (`Error e)) in
   let ok = (fun data meta -> user_cb (`Select (data, meta))) in
   let query_batch = query_batch ~execute ~sql params in
   let iterator_query = iterate_query ~query_batch in
@@ -141,4 +167,4 @@ let query execute ?batch_size ~sql params user_cb =
     ~iterator_query
     ~fail
     ~ok
-    (iteration_query params (Js.Dict.empty ()) (Js.Dict.empty ()))
+    (iteration_query params (Js.Dict.empty ()) (Js.Dict.empty ())) *)

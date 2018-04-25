@@ -1,4 +1,5 @@
 exception InvalidQuery of string
+exception InvalidResponse of string
 
 module type Queryable = sig
   type connection
@@ -91,10 +92,15 @@ module Make_sql(Driver: Queryable) = struct
       Invalid Response: Expected Select got Mutation
     |}
 
-  let invalid_response_select = Failure {|
+  (* let invalid_response_select = Failure {|
     SqlCommonError - ERR_UNEXPECTED_SELECT (99999)
     Invalid Response: Expected Mutation got Select
-  |}
+  |} *)
+
+  let invalid_response_select = InvalidResponse("
+    SqlCommonError - ERR_UNEXPECTED_SELECT (99999)
+    Invalid Response: Expected Mutation got Select
+  ")
 
   let invalid_query_because_of_in = InvalidQuery("
     SqlCommonError - ERR_INVALID_QUERY (99999)
