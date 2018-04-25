@@ -16,3 +16,20 @@ val insert :
   rows: 'b array ->
   ([> `Error of exn | `Mutation of int * int] -> unit) ->
   unit
+
+
+val query :
+  (
+    sql:string ->
+    params:'a array ->
+    (
+      [<
+        `Error of exn
+      | `Select of Js.Json.t * Js.Json.t
+      ] -> unit
+    ) ->
+    unit
+  ) ->
+  ?batch_size:int ->
+  ([> `Error of exn | `Select of Js.Json.t * Js.Json.t] -> unit) ->
+  unit

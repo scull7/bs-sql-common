@@ -54,6 +54,12 @@ module type Make_store = sig
     ?params:params ->
     ([`Error of exn | `Select of Js.Json.t * Js.Json.t] -> unit)
     -> unit
+  val query_batch :
+    connection ->
+    sql:string ->
+    ?params:params ->
+    ([`Error of exn | `Select of Js.Json.t * Js.Json.t] -> unit)
+    -> unit
   val mutate :
     connection ->
     sql:string ->
@@ -115,6 +121,9 @@ module Make_sql(Driver: Queryable) = struct
     | true -> cb (`Error invalid_query_because_of_in)
     | false -> query_exec conn ~sql ?params cb
 
+  let query_batch conn ?batch_size ?params cb =
+    SqlCommonBatch.query (query_exec conn) ~sql ?params cb
+
   let mutate conn ~sql ?params cb =
     Driver.execute conn sql params (fun res ->
       match res with
@@ -130,6 +139,14 @@ module Make_sql(Driver: Queryable) = struct
 
     val query :
       connection ->
+      sql:string ->
+      ?params:[ `Named of Js.Json.t | `Positional of Js.Json.t ] ->
+      unit ->
+      (Driver.rows * Driver.meta) Js.Promise.t
+
+    val query_batch :
+      connection ->
+      ?batch_size:int ->
       sql:string ->
       ?params:[ `Named of Js.Json.t | `Positional of Js.Json.t ] ->
       unit ->
@@ -154,6 +171,15 @@ module Make_sql(Driver: Queryable) = struct
     let query conn ~sql ?params _ =
       Js.Promise.make (fun ~resolve ~reject ->
         query conn ~sql ?params (fun res ->
+          match res with
+          | `Error e -> reject e [@bs]
+          | `Select (rows, meta) -> resolve (rows, meta) [@bs]
+        )
+      )
+
+    let query_batch conn ?batch_size ~sql ?params _ =
+      Js.Promise.make (fun ~resolve ~reject ->
+        query_batch conn ?batch_size ~sql ?params (
           match res with
           | `Error e -> reject e [@bs]
           | `Select (rows, meta) -> resolve (rows, meta) [@bs]
