@@ -67,6 +67,18 @@ describe "Raw SQL Query Test Sequence" (fun () ->
     )
   );
 
+  testAsync "Expect an error result for an SELECT query called via mutate" (fun finish ->
+    Sql.mutate conn ~sql:"SELECT * FROM test.simple" (fun resp ->
+      match resp with
+      | `Error e ->
+        match e with
+        | SqlCommon.InvalidResponse s -> Expect.expect s |> Expect.toContainString "ERR_UNEXPECTED_SELECT" |> finish
+        | _ -> fail "Unexpected failure mode" |> finish
+      | _ ->
+        fail "This should have returned an InvalidResponse exception" |> finish
+    )
+  );
+
   testAsync "Expect a mutation result for an INSERT query" (fun finish ->
     Sql.mutate conn ~sql:"INSERT INTO test.simple (code) VALUES ('bar'), ('baz')" (fun resp ->
       match resp with
@@ -93,13 +105,25 @@ describe "Raw SQL Query Test Sequence" (fun () ->
       )
   );
 
+  testAsync "Expect an error result for an INSERT called via query" (fun finish ->
+    Sql.query conn ~sql:"INSERT INTO test.simple (code) VALUES ('failure')" (fun res ->
+      match res with
+      | `Error e ->
+        match e with
+        | SqlCommon.InvalidResponse s -> Expect.expect s |> Expect.toContainString "ERR_UNEXPECTED_MUTATION" |> finish
+        | _ -> fail "Unexpected failure mode" |> finish
+      | _ ->
+        fail "This should have returned an InvalidResponse exception" |> finish
+    )
+  );
+
   testAsync "Expect a SELECT with one parameter to respond with one column" (fun finish ->
     let decoder json = Json.Decode.({
      id = json |> field "id" int;
      code = json |> field "code" string;
     }) in
     let pick = function
-      | [| {id; code } |] -> [| (id == 1); (code == "foo") |]
+      | [| {id; code } |] -> [| (id == 1); (code == "fooo") |]
       | [||] -> failwith "empty"
       | _ -> failwith "unknown"
     in
@@ -116,7 +140,7 @@ describe "Raw SQL Query Test Sequence" (fun () ->
     )
   );
 
-  testAsync "Expect a SELECT * to respond with 3 rows" (fun finish ->
+  testAsync "Expect a SELECT * to respond with 4 rows" (fun finish ->
     let decoder json = Json.Decode.({
      id = json |> field "id" int;
      code = json |> field "code" string;
@@ -127,7 +151,7 @@ describe "Raw SQL Query Test Sequence" (fun () ->
       | `Select (rows, _) ->
         Belt_Array.map rows decoder
         |> Expect.expect
-        |> Expect.toHaveLength 3
+        |> Expect.toHaveLength 4
         |> finish
     )
   );
