@@ -63,4 +63,18 @@ describe "Test parameter interpolation" (fun () ->
       | _ -> fail "Unexpected failure mode" |> finish
     )
   );
+
+  testAsync "Expect a UPDATE with two parameters to fail if not batched" (fun finish ->
+    let params = Some(`Positional ( jsonIntMatrix [|[|2;3|]|])) in
+    Sql.mutate conn ~sql:"UPDATE test.simple set code = 'aaaa' WHERE id IN (2,3)" ?params (fun res ->
+    match res with
+    | `Mutation (_, _) ->
+      fail "A mutation with an IN should have been rejected."
+      |> finish
+    | `Error e ->
+      match e with
+      | SqlCommon.InvalidQuery s -> Expect.expect s |> Expect.toContainString "ERR_INVALID_QUERY" |> finish
+      | _ -> fail "Unexpected failure mode" |> finish
+    )
+  );
 );

@@ -96,7 +96,7 @@ module Make_sql(Driver: Queryable) = struct
     Do not use 'IN' with non-batched operations - use a batch operation instead
   ")
 
-  let string_contains_in str =
+  let query_contains_in str =
     let re = [%re "/\\bin\\b/i"] in
     let re_result = Js.Re.exec str re in
     match re_result with
@@ -112,17 +112,22 @@ module Make_sql(Driver: Queryable) = struct
     )
 
   let query conn ~sql ?params cb =
-    match (string_contains_in sql) with
+    match (query_contains_in sql) with
     | true -> cb (`Error invalid_query_because_of_in)
     | false -> query_exec conn ~sql ?params cb
 
-  let mutate conn ~sql ?params cb =
+  let mutate_exec conn ~sql ?params cb =
     Driver.execute conn sql params (fun res ->
       match res with
       | `Select _ -> cb (`Error invalid_response_select)
       | `Mutation (changed, last_id)-> cb (`Mutation (changed, last_id))
       | `Error e -> cb (`Error e)
     )
+
+  let mutate conn ~sql ?params cb =
+    match (query_contains_in sql) with
+    | true -> cb (`Error invalid_query_because_of_in)
+    | false -> mutate_exec conn ~sql ?params cb
 
   let mutate_batch conn ?batch_size ~table ~columns ~rows cb =
     SqlCommonBatch.insert (mutate conn) ?batch_size ~table ~columns ~rows cb
