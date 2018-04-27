@@ -55,12 +55,6 @@ module type Make_store = sig
     ?params:params ->
     ([`Error of exn | `Select of Js.Json.t * Js.Json.t] -> unit)
     -> unit
-  val query_batch :
-    connection ->
-    sql:string ->
-    ?params:params ->
-    ([`Error of exn | `Select of Js.Json.t * Js.Json.t] -> unit)
-    -> unit
   val mutate :
     connection ->
     sql:string ->
