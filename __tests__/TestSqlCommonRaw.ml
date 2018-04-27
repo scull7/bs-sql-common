@@ -123,7 +123,7 @@ describe "Raw SQL Query Test Sequence" (fun () ->
      code = json |> field "code" string;
     }) in
     let pick = function
-      | [| {id; code } |] -> [| (id == 1); (code == "fooo") |]
+      | [| {id; code } |] -> [| (id == 1); (code == "foo") |]
       | [||] -> failwith "empty"
       | _ -> failwith "unknown"
     in
