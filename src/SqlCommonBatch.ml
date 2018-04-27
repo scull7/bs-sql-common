@@ -30,7 +30,7 @@ let db_call_query ~execute ~sql ?params ~fail ~ok _ =
   let _ = execute ~sql ?params (fun res ->
     match res with
     | `Error e -> fail e
-    | `Select ((data:Js.Json.t), (meta:Js.Json.t)) -> ok data meta
+    | `Select ((data:Js.Json.t array), (meta:Js.Json.t)) -> ok data meta
   )
   in ()
 
@@ -45,7 +45,7 @@ let commit ~execute ~fail ~ok _ =
   in
   db_call ~execute ~sql:"COMMIT" ~fail:rollback ~ok ()
 
-let insert_batch ~execute ~table ~columns ~rows ~fail ~ok =
+let insert_batch ~execute ~table ~columns ~rows ~fail ~ok _ =
   let params = [|columns; rows|] in
   (*
     Have to use this because MySQL2 doesn't properly
@@ -54,8 +54,8 @@ let insert_batch ~execute ~table ~columns ~rows ~fail ~ok =
   let sql = sqlformat {j|INSERT INTO $table (??) VALUES ?|j} params in
   db_call ~execute ~sql ~fail ~ok ()
 
-let query_batch ~execute ~sql ~params ~fail ~ok _ =
-  let sql_with_params = sqlformat sql params in
+let query_batch ~execute ~sql_string ~params_array ~fail ~ok _ =
+  let sql_with_params = sqlformat sql_string params_array in
   db_call_query ~execute ~sql:sql_with_params ~fail ~ok ()
 
 let iterate ~insert_batch ~batch_size ~rows ~fail ~ok _ =
@@ -126,30 +126,37 @@ let insert execute ?batch_size ~table ~columns ~rows user_cb =
   in
   db_call ~execute ~sql:"START TRANSACTION" ~fail ~ok ()
 
-let query execute ?batch_size ~sql params user_cb =
+let query execute ?batch_size ~sql_string ~params_array user_cb =
   let batch_size =
     match batch_size with
     | None -> 1000
     | Some(s) -> s
   in
   let fail = (fun e -> user_cb (`Error e)) in
-  let complete = (fun data meta ->
-    let ok = (fun _ _ -> user_cb (`Select (data, meta)))
-    in
-    commit ~execute ~fail ~ok ()
-  ) in
-  let query_batch = query_batch ~execute ~sql params in
-  let iterator_query = iterate_query ~query_batch in
-  let ok = (fun _ _ ->
-    run_query
-      ~batch_size
-      ~iterator_query
-      ~fail
-      ~ok:complete
-      iteration_query params (Js.Dict.empty ()) (Js.Dict.empty ())
-  )
+  let ok = (fun data meta -> user_cb (`Select (data, meta))) in
+  let query_batch = query_batch ~execute ~sql_string ~params_array in
+  (* let iterator_query = iterate_query ~query_batch in *)
+  query_batch ~fail ~ok ()
+  (* run_query
+    ~batch_size
+    ~iterator_query
+    ~fail
+    ~ok
+    (iteration_query params (Js.Dict.empty ()) (Js.Dict.empty ())) *)
+
+
+
+(* 
+let query2 execute ?batchsize ~sql ~params user_cb =
+  let batch_size =
+    match batch_size with
+    | None -> 1000
+    | Some(s) -> s
   in
-  db_call ~execute ~sql:"START TRANSACTION" ~fail ~ok ()
+  let fail = (fun e -> user_cb (`Error e)) in
+  let ok = (fun data meta -> user_cb (`Select (data, meta))) in
+  let query_batch_fn = query_batch2 ~execute ~sql ~params
+ *)
 
 
 (* let query execute ?batch_size ~sql params user_cb =
