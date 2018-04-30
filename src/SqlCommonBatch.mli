@@ -18,7 +18,7 @@ val insert :
   unit
 
 
-(* val query :
+val query :
   (
     sql:string ->
     ?params:'a ->
@@ -33,26 +33,5 @@ val insert :
   ?batch_size:int ->
   sql_string: string ->
   params_array: 'e Js.Array.t ->
-
   ([> `Error of 'b | `Select of Js.Json.t array * Js.Json.t] -> 'c) ->
   unit
- *)
-
-(* val query :
-  (
-    sql:string ->
-    ?params:'a ->
-    (
-      [<
-        `Error of 'b
-      | `Select of Js.Json.t array * Js.Json.t
-      ] -> 'c
-    ) ->
-    'd
-  ) ->
-  ?batch_size:int ->
-  sql_string: string ->
-  params_array: 'b Js.Array.t ->
-
-  ([> `Error of exn | `Select of Js.Json.t array * Js.Json.t] -> unit) ->
-  unit *)

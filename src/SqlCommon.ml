@@ -3,7 +3,7 @@ exception InvalidResponse of string
 
 module type Queryable = sig
   type connection
-  type meta
+  type meta = Js.Json.t
   type rows = Js.Json.t array
 
   type params =
@@ -32,6 +32,8 @@ module type Queryable = sig
 end
 
 module type Make_store = sig
+  type meta
+  type rows
   type connection
   type error
   type params =
@@ -53,13 +55,13 @@ module type Make_store = sig
     connection ->
     sql:string ->
     ?params:params ->
-    ([`Error of exn | `Select of Js.Json.t * Js.Json.t] -> unit)
+    ([`Error of exn | `Select of rows * meta] -> unit)
     -> unit
   val query_batch :
     connection ->
     sql:string ->
     ?params:params ->
-    ([`Error of exn | `Select of Js.Json.t * Js.Json.t] -> unit)
+    ([`Error of exn | `Select of rows * meta] -> unit)
     -> unit
   val mutate :
     connection ->
@@ -79,6 +81,9 @@ module type Make_store = sig
 end
 
 module Make_sql(Driver: Queryable) = struct
+
+  type meta = Driver.meta
+  type rows = Driver.rows
 
   type connection = Driver.connection
   type sql = string
@@ -122,9 +127,8 @@ module Make_sql(Driver: Queryable) = struct
     | true -> cb (`Error invalid_query_because_of_in)
     | false -> query_exec conn ~sql ?params cb
 
-
-  (* let query_batch conn ?batch_size ~sql_string ?params_array cb =
-    SqlCommonBatch.query (query_exec conn) ~sql_string ?params_array cb *)
+  let query_batch conn ?batch_size ~sql_string ~params_array cb =
+    SqlCommonBatch.query (query_exec conn) ~sql_string ~params_array cb
 
   let mutate conn ~sql ?params cb =
     Driver.execute conn sql params (fun res ->
@@ -179,16 +183,16 @@ module Make_sql(Driver: Queryable) = struct
         )
       )
 
-    (* let query_batch conn ?batch_size ~sql ?params _ =
+    let query_batch conn ?batch_size ~sql params _ =
       Js.Promise.make (fun ~resolve ~reject ->
         let sql_string = sql in
         let params_array = params in
-        query_batch conn ?batch_size ~sql_string ?params_array (
+        query_batch conn ?batch_size ~sql_string ~params_array (fun res ->
           match res with
           | `Error e -> reject e [@bs]
           | `Select (rows, meta) -> resolve (rows, meta) [@bs]
         )
-      ) *)
+      )
 
     let mutate conn ~sql ?params _ =
       Js.Promise.make (fun ~resolve ~reject ->
