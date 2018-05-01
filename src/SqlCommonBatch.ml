@@ -61,7 +61,6 @@ let insert_batch ~execute ~table ~columns ~rows ~fail ~ok _ =
 let query_batch ~execute ~sql ~params ~fail ~ok _ =
   let sql_with_params = match params with
   | Some(`Positional p) -> sqlformatparams sql p
-  | Some(`Named n) -> sqlformatparams sql n
   | None -> sql
   in
   db_call_query ~execute ~sql:sql_with_params ~fail ~ok ()

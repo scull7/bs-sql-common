@@ -61,7 +61,7 @@ module type Make_store = sig
     connection ->
     ?batch_size:int ->
     sql:string ->
-    ?params:MySql2.params ->
+    ?params:[`Positional of Js.Json.t] option ->
     ([`Error of exn | `Select of rows * meta] -> unit)
     -> unit
   val mutate :
@@ -155,7 +155,7 @@ module Make_sql(Driver: Queryable) = struct
       connection ->
       ?batch_size:int ->
       sql:string ->
-      params:MySql2.params ->
+      params:[`Positional of Js.Json.t] option ->
       unit ->
       (Driver.rows * Driver.meta) Js.Promise.t
 

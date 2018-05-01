@@ -32,6 +32,6 @@ val query :
   ) ->
   ?batch_size:int ->
   sql: string ->
-  params: MySql2.params ->
+  params:[`Positional of Js.Json.t] option ->
   ([> `Error of 'b | `Select of Js.Json.t array * MySql2.meta] -> 'c) ->
   unit
