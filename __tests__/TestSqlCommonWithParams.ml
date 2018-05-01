@@ -74,13 +74,13 @@ describe "Test parameter interpolation" (fun () ->
      id = json |> field "id" int;
      code = json |> field "code" string;
     }) in
-    let params_array = Some(`Positional ( jsonIntMatrix [|[|1;2|]|])) in
+    let params = Some(`Positional ( jsonIntMatrix [|[|1;2|]|])) in
     let batch_size = 10 in
-    Sql.query_batch conn ~batch_size ~sql_string:"SELECT * FROM test.simple WHERE test.simple.id IN (?)" ~params_array (fun res ->
+    Sql.query_batch conn ~batch_size ~sql:"SELECT * FROM test.simple WHERE test.simple.id IN (?)" ~params (fun res ->
     match res with
     | `Error e -> let _ = Js.log e in finish (fail "see log")
     | `Select (rows, _) ->
-      Belt_Array.map rows decoder in
+      Belt_Array.map rows decoder
       |> Expect.expect
       |> Expect.toHaveLength 2
       |> finish

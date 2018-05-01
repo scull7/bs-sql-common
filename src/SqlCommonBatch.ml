@@ -63,12 +63,11 @@ let insert_batch ~execute ~table ~columns ~rows ~fail ~ok _ =
   db_call ~execute ~sql ~fail ~ok ()
 
 (* Does substitution, calls db *)
-let query_batch ~execute ~sql_string ~params_array ~fail ~ok _ =
-  (* let sql_with_params = sqlformatagain sql_string params_array in *)
-  let sql_with_params = match params_array with
-  | Some(`Positional p) -> sqlformatobj sql_string p
-  | Some(`Named n) -> sqlformatobj sql_string n
-  | None -> ""
+let query_batch ~execute ~sql ~params ~fail ~ok _ =
+  let sql_with_params = match params with
+  | Some(`Positional p) -> sqlformatobj sql p
+  | Some(`Named n) -> sqlformatobj sql n
+  | None -> sql
   in
   db_call_query ~execute ~sql:sql_with_params ~fail ~ok ()
 
@@ -140,7 +139,7 @@ let insert execute ?batch_size ~table ~columns ~rows user_cb =
   in
   db_call ~execute ~sql:"START TRANSACTION" ~fail ~ok ()
 
-let query execute ?batch_size ~sql_string ~params_array user_cb =
+let query execute ?batch_size ~sql ~params user_cb =
   let batch_size =
     match batch_size with
     | None -> 1000
@@ -148,5 +147,5 @@ let query execute ?batch_size ~sql_string ~params_array user_cb =
   in
   let fail = (fun e -> user_cb (`Error e)) in
   let ok = (fun data meta -> user_cb (`Select (data, meta))) in
-  let query_batch = query_batch ~execute ~sql_string ~params_array in
+  let query_batch = query_batch ~execute ~sql ~params in
   query_batch ~fail ~ok ()
