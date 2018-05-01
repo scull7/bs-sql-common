@@ -25,13 +25,13 @@ val query :
     (
       [<
         `Error of 'b
-      | `Select of Js.Json.t array * Js.Json.t
+      | `Select of Js.Json.t array * MySql2.meta
       ] -> 'c
     ) ->
     'd
   ) ->
   ?batch_size:int ->
   sql_string: string ->
-  params_array: 'e Js.Array.t ->
-  ([> `Error of 'b | `Select of Js.Json.t array * Js.Json.t] -> 'c) ->
+  params_array: MySql2.params ->
+  ([> `Error of 'b | `Select of Js.Json.t array * MySql2.meta] -> 'c) ->
   unit

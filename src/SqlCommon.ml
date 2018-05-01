@@ -3,7 +3,7 @@ exception InvalidResponse of string
 
 module type Queryable = sig
   type connection
-  type meta = Js.Json.t
+  type meta = MySql2.meta_record array
   type rows = Js.Json.t array
 
   type params =
@@ -59,8 +59,9 @@ module type Make_store = sig
     -> unit
   val query_batch :
     connection ->
+    ?batch_size:int ->
     sql:string ->
-    ?params:params ->
+    ?params:MySql2.params ->
     ([`Error of exn | `Select of rows * meta] -> unit)
     -> unit
   val mutate :
@@ -150,13 +151,13 @@ module Make_sql(Driver: Queryable) = struct
       unit ->
       (Driver.rows * Driver.meta) Js.Promise.t
 
-    (* val query_batch :
+    val query_batch :
       connection ->
       ?batch_size:int ->
       sql:string ->
-      ?params:[ `Named of Js.Json.t | `Positional of Js.Json.t ] ->
+      params:MySql2.params ->
       unit ->
-      (Driver.rows * Driver.meta) Js.Promise.t *)
+      (Driver.rows * Driver.meta) Js.Promise.t
 
     val mutate :
       connection ->
@@ -183,7 +184,7 @@ module Make_sql(Driver: Queryable) = struct
         )
       )
 
-    let query_batch conn ?batch_size ~sql params _ =
+    let query_batch conn ?batch_size ~sql ~params _ =
       Js.Promise.make (fun ~resolve ~reject ->
         let sql_string = sql in
         let params_array = params in

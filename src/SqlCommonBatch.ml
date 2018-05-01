@@ -1,6 +1,10 @@
 
 external sqlformat : string -> 'a Js.Array.t -> string = "format"
 [@@bs.module "sqlstring"]
+external sqlformatagain : string -> MySql2.params-> string = "format" (* do we need this one *)
+[@@bs.module "sqlstring"]
+external sqlformatobj : string -> Js.Json.t -> string = "format" (* do we need this one *)
+[@@bs.module "sqlstring"]
 
 type 'a iteration = {
   rows: 'a array;
@@ -34,7 +38,7 @@ let db_call_query ~execute ~sql ?params ~fail ~ok _ =
   let _ = execute ~sql ?params (fun res ->
     match res with
     | `Error e -> fail e
-    | `Select ((data:Js.Json.t array), (meta:Js.Json.t)) -> ok data meta
+    | `Select ((data:Js.Json.t array), (meta:MySql2.meta)) -> ok data meta
   )
   in ()
 
@@ -60,7 +64,12 @@ let insert_batch ~execute ~table ~columns ~rows ~fail ~ok _ =
 
 (* Does substitution, calls db *)
 let query_batch ~execute ~sql_string ~params_array ~fail ~ok _ =
-  let sql_with_params = sqlformat sql_string params_array in
+  (* let sql_with_params = sqlformatagain sql_string params_array in *)
+  let sql_with_params = match params_array with
+  | Some(`Positional p) -> sqlformatobj sql_string p
+  | Some(`Named n) -> sqlformatobj sql_string n
+  | None -> ""
+  in
   db_call_query ~execute ~sql:sql_with_params ~fail ~ok ()
 
 let iterate ~insert_batch ~batch_size ~rows ~fail ~ok _ =

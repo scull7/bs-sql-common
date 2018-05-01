@@ -8,6 +8,11 @@ type result = {
   result: int;
 }
 
+type simple = {
+  id: int;
+  code: string;
+}
+
 let get_result { result } = result
 
 let expect name value decoder next res =
@@ -61,6 +66,24 @@ describe "Test parameter interpolation" (fun () ->
       match e with
       | SqlCommon.InvalidQuery s -> Expect.expect s |> Expect.toContainString "ERR_INVALID_QUERY" |> finish
       | _ -> fail "Unexpected failure mode" |> finish
+    )
+  );
+
+  testAsync "Expect a SELECT with two positional parameters to succeed if batched" (fun finish ->
+    let decoder json = Json.Decode.({
+     id = json |> field "id" int;
+     code = json |> field "code" string;
+    }) in
+    let params_array = Some(`Positional ( jsonIntMatrix [|[|1;2|]|])) in
+    let batch_size = 10 in
+    Sql.query_batch conn ~batch_size ~sql_string:"SELECT * FROM test.simple WHERE test.simple.id IN (?)" ~params_array (fun res ->
+    match res with
+    | `Error e -> let _ = Js.log e in finish (fail "see log")
+    | `Select (rows, _) ->
+      Belt_Array.map rows decoder in
+      |> Expect.expect
+      |> Expect.toHaveLength 2
+      |> finish
     )
   );
 );
