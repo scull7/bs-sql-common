@@ -1,9 +1,7 @@
 
 external sqlformat : string -> 'a Js.Array.t -> string = "format"
 [@@bs.module "sqlstring"]
-external sqlformatagain : string -> MySql2.params-> string = "format" (* do we need this one *)
-[@@bs.module "sqlstring"]
-external sqlformatobj : string -> Js.Json.t -> string = "format" (* do we need this one *)
+external sqlformatparams : string -> Js.Json.t -> string = "format"
 [@@bs.module "sqlstring"]
 
 type 'a iteration = {
@@ -11,9 +9,6 @@ type 'a iteration = {
   count: int;
   last_insert_id: int;
 }
-
-(* I don't remember if this should be here or not based on Fri *)
-type meta = Js.Json.t
 
 (* type 'a query_iteration = {
   params: 'a array;
@@ -65,8 +60,8 @@ let insert_batch ~execute ~table ~columns ~rows ~fail ~ok _ =
 (* Does substitution, calls db *)
 let query_batch ~execute ~sql ~params ~fail ~ok _ =
   let sql_with_params = match params with
-  | Some(`Positional p) -> sqlformatobj sql p
-  | Some(`Named n) -> sqlformatobj sql n
+  | Some(`Positional p) -> sqlformatparams sql p
+  | Some(`Named n) -> sqlformatparams sql n
   | None -> sql
   in
   db_call_query ~execute ~sql:sql_with_params ~fail ~ok ()
