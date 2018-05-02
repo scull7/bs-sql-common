@@ -1,7 +1,7 @@
 
 external sqlformat : string -> 'a Js.Array.t -> string = "format"
 [@@bs.module "sqlstring"]
-external sqlformatparams : string -> Js.Json.t -> string = "format"
+external sqlformatparams : string -> Js.Json.t array -> string = "format"
 [@@bs.module "sqlstring"]
 
 type 'a iteration = {
@@ -10,15 +10,33 @@ type 'a iteration = {
   last_insert_id: int;
 }
 
-(* type 'a query_iteration = {
+type 'a query_iteration = {
   params: 'a array;
-  data: Js.Json.t;
-  meta: Js.Json.t;
-} *)
+  data: Js.Json.t array;
+  meta: Js.Json.t array;
+}
 
 let iteration rows count last_insert_id = { rows; count; last_insert_id; }
 
-(* let query_iteration params data meta = { params; data; meta; } *)
+(* This could probably be combined with query_iteration using an optional argument *)
+let query_iteration_original params =
+  let data = [||] in
+  let meta = [||] in
+  { params; data; meta; }
+
+let query_iteration params data meta prev =
+  let data = Array.append prev.data data in
+  let meta = Array.append prev.meta meta in
+  { params; data; meta; }
+
+(* That would probably look like this *)
+(* let query_iteration params data meta prev =
+  match prev with
+  | None -> { params; data; meta; }
+  | Some(`query_iteration p) ->
+    let data = Array.append p.data data in
+    let meta = Array.append p.meta meta in
+    { params; data; meta; } *)
 
 let db_call ~execute ~sql ?params ~fail ~ok _ =
   let _ = execute ~sql ?params (fun res ->
@@ -29,8 +47,8 @@ let db_call ~execute ~sql ?params ~fail ~ok _ =
   in ()
 
 (* Lowest *)
-let db_call_query ~execute ~sql ?params ~fail ~ok _ =
-  let _ = execute ~sql ?params (fun res ->
+let db_call_query ~execute ~sql ~params ~fail ~ok _ =
+  let _ = execute ~sql ~params (fun res ->
     match res with
     | `Error e -> fail e
     | `Select ((data:Js.Json.t array), (meta:MySql2.meta)) -> ok data meta
@@ -59,10 +77,7 @@ let insert_batch ~execute ~table ~columns ~rows ~fail ~ok _ =
 
 (* Does substitution, calls db *)
 let query_batch ~execute ~sql ~params ~fail ~ok _ =
-  let sql_with_params = match params with
-  | Some(`Positional p) -> sqlformatparams sql p
-  | None -> sql
-  in
+  let sql_with_params = sqlformatparams sql params in
   db_call_query ~execute ~sql:sql_with_params ~fail ~ok ()
 
 let iterate ~insert_batch ~batch_size ~rows ~fail ~ok _ =
@@ -79,19 +94,19 @@ let iterate ~insert_batch ~batch_size ~rows ~fail ~ok _ =
   (* Trampoline, in case the connection driver is synchronous *)
   let _ = Js.Global.setTimeout execute 0 in ()
 
-(* let iterate_query ~query_batch ~batch_size ~params ~fail ~ok _ =
+let iterate_query ~query_batch_partial ~batch_size ~params ~fail ~ok ~prev _ =
   let len = Belt_Array.length params in
   let batch = Belt_Array.slice params ~offset:0 ~len:batch_size in
   let rest = Belt_Array.slice params ~offset:batch_size ~len:len in
-  let execute = (fun () -> query_batch
+  let execute = (fun () -> query_batch_partial
     ~params:batch
     ~fail
-    ~ok: (fun data meta -> ok (query_iteration params data meta)) (* I think we merge the data here*)
+    ~ok: (fun data meta -> ok (query_iteration rest data meta prev))
     ()
   )
   in
   (* Trampoline, in case the connection driver is synchronous *)
-  let _ = Js.Global.setTimeout execute 0 in () *)
+  let _ = Js.Global.setTimeout execute 0 in ()
 
 let rec run ~batch_size ~iterator ~fail ~ok iteration =
   let next = run ~batch_size ~iterator ~fail ~ok in
@@ -100,12 +115,12 @@ let rec run ~batch_size ~iterator ~fail ~ok iteration =
   | [||] -> ok count last_insert_id
   | r -> iterator ~batch_size ~rows:r ~fail ~ok:next ()
 
-(* let rec run_query ~batch_size ~iterator ~fail ~ok query_iteration =
-  let next = run_query ~batch_size ~iterator ~fail ~ok in
+let rec run_query ~batch_size ~iterator_query ~fail ~ok ~query_iteration =
+  let next = run_query ~batch_size ~iterator_query ~fail ~ok ~query_iteration in
   let { params; data; meta } = query_iteration in
   match params with
   | [||] -> ok data meta
-  | p -> iterator ~batch_size ~params:p ~fail ~ok:next () *)
+  | p -> iterator_query ~batch_size ~params:p ~fail ~ok:next ~prev:query_iteration ()
 
 let insert execute ?batch_size ~table ~columns ~rows user_cb =
   let batch_size =
@@ -133,7 +148,7 @@ let insert execute ?batch_size ~table ~columns ~rows user_cb =
   in
   db_call ~execute ~sql:"START TRANSACTION" ~fail ~ok ()
 
-let query execute ?batch_size ~sql ~params user_cb =
+(* let query execute ?batch_size ~sql ~params user_cb =
   let batch_size =
     match batch_size with
     | None -> 1000
@@ -142,4 +157,33 @@ let query execute ?batch_size ~sql ~params user_cb =
   let fail = (fun e -> user_cb (`Error e)) in
   let ok = (fun data meta -> user_cb (`Select (data, meta))) in
   let query_batch = query_batch ~execute ~sql ~params in
-  query_batch ~fail ~ok ()
+  query_batch ~fail ~ok () *)
+
+(* let query execute ?batch_size ~sql ~params user_cb =
+  let batch_size =
+    match batch_size with
+    | None -> 1000
+    | Some(s) -> s
+  in
+  let fail = (fun e -> user_cb (`Error e)) in
+  let ok = (fun data meta -> user_cb (`Select (data, meta))) in
+  let query_batch = query_batch ~execute ~sql ~params in
+  query_batch ~fail ~ok () *)
+
+let query execute ?batch_size ~sql ~params user_cb =
+  let batch_size =
+    match batch_size with
+    | None -> 1000
+    | Some(s) -> s
+  in
+  let fail = (fun e -> user_cb (`Error e)) in
+  let ok = (fun data meta -> user_cb (`Select (data, meta))) in
+  let query_batch_partial = query_batch ~execute ~sql in
+  let iterator_query = iterate_query ~query_batch_partial in
+  let query_iteration = query_iteration_original params in
+  run_query
+    ~batch_size
+    ~iterator_query
+    ~fail
+    ~ok
+    ~query_iteration
