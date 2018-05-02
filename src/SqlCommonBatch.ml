@@ -13,7 +13,7 @@ type 'a iteration = {
 type 'a query_iteration = {
   params: 'a array;
   data: Js.Json.t array;
-  meta: Js.Json.t array;
+  meta: MySql2.meta_record array;
 }
 
 let iteration rows count last_insert_id = { rows; count; last_insert_id; }
