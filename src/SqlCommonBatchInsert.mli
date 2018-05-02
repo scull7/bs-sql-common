@@ -17,7 +17,6 @@ val insert :
   ([> `Error of exn | `Mutation of int * int] -> unit) ->
   unit
 
-
 val query :
   (
     sql:string ->

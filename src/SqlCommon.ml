@@ -129,7 +129,7 @@ module Make_sql(Driver: Queryable) = struct
     | false -> query_exec conn ~sql ?params cb
 
   let query_batch conn ?batch_size ~sql ~params cb =
-    SqlCommonBatch.query (query_exec conn) ?batch_size ~sql ~params cb
+    SqlCommonBatchInsert.query (query_exec conn) ?batch_size ~sql ~params cb
 
   let mutate conn ~sql ?params cb =
     Driver.execute conn sql params (fun res ->
@@ -140,7 +140,7 @@ module Make_sql(Driver: Queryable) = struct
     )
 
   let mutate_batch conn ?batch_size ~table ~columns ~rows cb =
-    SqlCommonBatch.insert (mutate conn) ?batch_size ~table ~columns ~rows cb
+    SqlCommonBatchInsert.insert (mutate conn) ?batch_size ~table ~columns ~rows cb
 
   module Promise : sig
 
