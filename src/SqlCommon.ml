@@ -1,3 +1,6 @@
+exception InvalidQuery of string
+exception InvalidResponse of string
+
 module type Queryable = sig
   type connection
   type meta
@@ -78,17 +81,29 @@ module Make_sql(Driver: Queryable) = struct
   let close = Driver.close
   let connect = Driver.connect
 
-  let invalid_response_mutation = Failure {|
+  let invalid_response_mutation = InvalidResponse("
       SqlCommonError - ERR_UNEXPECTED_MUTATION (99999)
       Invalid Response: Expected Select got Mutation
-    |}
+  ")
 
-  let invalid_response_select = Failure {|
-    SqlCommonError - ERR_UNEXPECTED_MUTATION (99999)
+  let invalid_response_select = InvalidResponse("
+    SqlCommonError - ERR_UNEXPECTED_SELECT (99999)
     Invalid Response: Expected Mutation got Select
-  |}
+  ")
 
-  let query conn ~sql ?params cb =
+  let invalid_query_because_of_in = InvalidQuery("
+    SqlCommonError - ERR_INVALID_QUERY (99999)
+    Do not use 'IN' with non-batched operations - use a batch operation instead
+  ")
+
+  let query_contains_in str =
+    let re = [%re "/\\bin\\b/i"] in
+    let re_result = Js.Re.exec str re in
+    match re_result with
+    | None -> false
+    | Some _ -> true
+
+  let query_exec conn ~sql ?params cb =
     Driver.execute conn sql params (fun res ->
       match res with
       | `Select (data, meta) -> cb (`Select (data, meta))
@@ -96,13 +111,23 @@ module Make_sql(Driver: Queryable) = struct
       | `Error e -> cb (`Error e)
     )
 
-  let mutate conn ~sql ?params cb =
+  let query conn ~sql ?params cb =
+    match (query_contains_in sql) with
+    | true -> cb (`Error invalid_query_because_of_in)
+    | false -> query_exec conn ~sql ?params cb
+
+  let mutate_exec conn ~sql ?params cb =
     Driver.execute conn sql params (fun res ->
       match res with
       | `Select _ -> cb (`Error invalid_response_select)
       | `Mutation (changed, last_id)-> cb (`Mutation (changed, last_id))
       | `Error e -> cb (`Error e)
     )
+
+  let mutate conn ~sql ?params cb =
+    match (query_contains_in sql) with
+    | true -> cb (`Error invalid_query_because_of_in)
+    | false -> mutate_exec conn ~sql ?params cb
 
   let mutate_batch conn ?batch_size ~table ~columns ~rows cb =
     SqlCommonBatch.insert (mutate conn) ?batch_size ~table ~columns ~rows cb
@@ -140,7 +165,6 @@ module Make_sql(Driver: Queryable) = struct
           | `Select (rows, meta) -> resolve (rows, meta) [@bs]
         )
       )
-
     let mutate conn ~sql ?params _ =
       Js.Promise.make (fun ~resolve ~reject ->
         mutate conn ~sql ?params (fun res ->
