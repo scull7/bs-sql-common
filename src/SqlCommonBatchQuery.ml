@@ -4,7 +4,7 @@ external sqlformatparams : string -> [`Positional of Js.Json.t array] -> string 
 external slice_to_params : 'a array -> [`Positional of Js.Json.t array] = "%identity"
 external params_to_array : [`Positional of Js.Json.t array] -> 'a array = "%identity"
 
-type 'a iteration = {
+type iteration = {
   params: [`Positional of Js.Json.t array];
   data: Js.Json.t array;
   meta: MySql2.meta_record array;
@@ -13,7 +13,7 @@ type 'a iteration = {
 let iteration ?prev params data meta  =
   match prev with
   | None -> { params; data; meta; }
-  | Some(`iteration p) ->
+  | Some(p) ->
     let data = Array.append p.data data in
     let meta = Array.append p.meta meta in
     { params; data; meta; }
@@ -89,11 +89,11 @@ let query execute ?batch_size ~sql ~params user_cb =
     fun iteration -> user_cb(`Select(data, meta))
   ) in
   let query_batch_partial = query_batch ~execute ~sql in
-  (* query_batch_partial ~params ~fail ~ok *)
-  let iterator = iterate ~query_batch_partial ~prev:iteration in
+  query_batch_partial ~params ~fail ~ok_db ()
+  (* let iterator = iterate ~query_batch_partial ~prev:iteration in
   run
     ~batch_size
     ~iterator
     ~fail
     ~ok_db:complete
-    ~iteration
+    ~iteration *)

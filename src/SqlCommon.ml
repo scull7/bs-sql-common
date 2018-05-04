@@ -155,7 +155,7 @@ module Make_sql(Driver: Queryable) = struct
       connection ->
       ?batch_size:int ->
       sql:string ->
-      params:[`Positional of Js.Json.t] ->
+      params:[`Positional of Js.Json.t array] ->
       unit ->
       (Driver.rows * Driver.meta) Js.Promise.t
 
