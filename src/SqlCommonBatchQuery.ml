@@ -19,20 +19,20 @@ let iteration ?prev params data meta  =
     { params; data; meta; }
 
 (* Lowest *)
-let db_call ~execute ~sql ?params ~fail ~ok _ =
+let db_call ~execute ~sql ?params ~fail ~ok_db _ =
   let _ = execute ~sql ?params (fun res ->
     match res with
     | `Error e -> fail e
-    | `Select ((data:Js.Json.t array), (meta:MySql2.meta)) -> ok data meta
+    | `Select ((data:Js.Json.t array), (meta:MySql2.meta)) -> ok_db data meta
   )
   in ()
 
 (* Does substitution, calls db *)
-let query_batch ~execute ~sql ~params ~fail ~ok _ =
+let query_batch ~execute ~sql ~params ~fail ~ok_db _ =
   let sql_with_params = sqlformatparams sql params in
-  db_call ~execute ~sql:sql_with_params ~fail ~ok ()
+  db_call ~execute ~sql:sql_with_params ~fail ~ok_db ()
 
-let iterate ~query_batch_partial ~batch_size ~(params:[`Positional of Js.Json.t array]) ~fail ~ok ~prev _ =
+let iterate ~query_batch_partial ~batch_size ~(params:[`Positional of Js.Json.t array]) ~fail ~ok_iteration ~prev _ =
   let params_array = params_to_array params in
   let len = Belt_Array.length params_array in
   let batch = slice_to_params (Belt_Array.slice params_array ~offset:0 ~len:batch_size) in
@@ -40,19 +40,19 @@ let iterate ~query_batch_partial ~batch_size ~(params:[`Positional of Js.Json.t 
   let execute = (fun () -> query_batch_partial
     ~params:batch
     ~fail
-    ~ok: (fun data meta -> ok (iteration ~prev rest data meta ))
+    ~ok_db: (fun data meta -> ok_iteration (iteration ~prev rest data meta ))
     ()
   )
   in
   (* Trampoline, in case the connection driver is synchronous *)
   let _ = Js.Global.setTimeout execute 0 in ()
 
-let rec run ~batch_size ~iterator ~fail ~ok ~iteration =
-  let next = run ~batch_size ~iterator ~fail ~ok ~iteration in
+let rec run ~batch_size ~iterator ~fail ~ok_db ~iteration =
+  let next = run ~batch_size ~iterator ~fail ~ok_db ~iteration in
   let { params; data; meta } = iteration in
   match Belt_Array.length (params_to_array params) with
-  | 0 -> ok data meta
-  | _ -> iterator ~batch_size ~params ~fail ~ok:next ~prev:iteration ()
+  | 0 -> ok_db data meta
+  | _ -> iterator ~batch_size ~params ~fail ~ok_iteration:next ~prev:iteration ()
 
 (* let query execute ?batch_size ~sql ~params user_cb =
   let batch_size =
@@ -82,15 +82,18 @@ let query execute ?batch_size ~sql ~params user_cb =
     | None -> 1000
     | Some(s) -> s
   in
-  let fail = (fun e -> user_cb (`Error e)) in
-  let ok = (fun data meta -> user_cb (`Select (data, meta))) in
-  let query_batch_partial = query_batch ~execute ~sql in
-  query_batch_partial ~params ~fail ~ok
-  (* let iterator = iterate ~query_batch_partial in
   let iteration = iteration params [||] [||] in
+  let fail = (fun e -> user_cb (`Error e)) in
+  let ok_db = (fun data meta -> user_cb (`Select (data, meta))) in
+  let complete = (fun data meta ->
+    fun iteration -> user_cb(`Select(data, meta))
+  ) in
+  let query_batch_partial = query_batch ~execute ~sql in
+  (* query_batch_partial ~params ~fail ~ok *)
+  let iterator = iterate ~query_batch_partial ~prev:iteration in
   run
     ~batch_size
     ~iterator
     ~fail
-    ~ok
-    ~iteration *)
+    ~ok_db:complete
+    ~iteration
