@@ -38,7 +38,7 @@ module type Make_store = sig
   type error
   type params =
     [ `Named of Js.Json.t
-    | `Positional of Js.Json.t array
+    | `Positional of Js.Json.t
     ] option
 
   val close : connection -> unit
@@ -155,7 +155,7 @@ module Make_sql(Driver: Queryable) = struct
       connection ->
       ?batch_size:int ->
       sql:string ->
-      params:[`Positional of Js.Json.t array] ->
+      params:[`Positional of Js.Json.t] ->
       unit ->
       (Driver.rows * Driver.meta) Js.Promise.t
 
