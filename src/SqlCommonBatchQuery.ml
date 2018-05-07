@@ -14,8 +14,8 @@ let iteration ?prev params data meta  =
   match prev with
   | None -> { params; data; meta; }
   | Some(p) ->
-    let data = Array.append p.data data in
-    let meta = Array.append p.meta meta in
+    let data = Belt_Array.concat p.data data in
+    let meta = Belt_Array.concat p.meta meta in
     { params; data; meta; }
 
 (* Lowest *)
