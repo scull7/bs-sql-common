@@ -6,12 +6,12 @@ val query :
       [<
         `Error of 'b
       | `Select of Js.Json.t array * MySql2.meta
-      ] -> 'c
+      ] -> unit
     ) ->
     'd
   ) ->
   ?batch_size:int ->
   sql: string ->
   params:[`Positional of Js.Json.t] ->
-  ([> `Error of 'b | `Select of Js.Json.t array * MySql2.meta] -> 'c) ->
+  ([> `Error of 'b | `Select of Js.Json.t array * MySql2.meta] -> unit) ->
   unit
