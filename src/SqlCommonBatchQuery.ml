@@ -97,6 +97,8 @@ let query execute ?batch_size ~sql ~params user_cb =
   ) in
   let complete = (fun data meta ->
     fun iteration -> user_cb(`Select(data, meta))
+    (* let iteration = user_cb(`Select(data, meta)) in *)
+    (* iteration data meta () *)
   ) in
   let query_batch_partial = query_batch ~execute ~sql in
   query_batch_partial ~params ~fail ~ok_db ()
