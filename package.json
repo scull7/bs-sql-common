@@ -47,6 +47,8 @@
     "bs-mysql2": "^3.0.2",
     "coveralls": "^3.0.0",
     "mysql2": "^1.5.2",
+    "husky": "^0.14.3",
+    "lint-staged": "^7.1.0",
     "nyc": "^11.4.1"
   },
   "peerDependencies": {
