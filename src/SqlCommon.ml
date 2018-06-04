@@ -108,6 +108,11 @@ module Make_sql(Driver: Queryable) = struct
     Do not use 'IN' with non-batched operations - use a batch operation instead
   ")
 
+  let invalid_query_because_of_param_count = InvalidQuery("
+    SqlCommonError - ERR_INVALIF_QUERY (99999)
+    Do not use query_batch for queries with multiple parameters - use a non-batched operation instead
+  ")
+
   let string_contains_in str =
     let re = [%re "/\\bin\\b/i"] in
     let re_result = Js.Re.exec str re in
@@ -129,7 +134,9 @@ module Make_sql(Driver: Queryable) = struct
     | false -> query_exec conn ~sql ?params cb
 
   let query_batch conn ?batch_size ~sql ~params cb =
-    SqlCommonBatchQuery.query (query_exec conn) ?batch_size ~sql ~params cb
+    match (SqlCommonBatchQuery.valid_query_params params) with
+    | true -> SqlCommonBatchQuery.query (query_exec conn) ?batch_size ~sql ~params cb
+    | false -> cb (`Error invalid_query_because_of_param_count)
 
   let mutate conn ~sql ?params cb =
     Driver.execute conn sql params (fun res ->
