@@ -69,7 +69,7 @@ describe "Test parameter interpolation" (fun () ->
     )
   );
 
-  (* This is the non-recursive case *)
+  (* Cover the case with batch_size > length of substitution array *)
   testAsync "Expect a SELECT with two positional parameters to succeed if batched" (fun finish ->
     let decoder json = Json.Decode.({
      id = json |> field "id" int;
@@ -88,10 +88,24 @@ describe "Test parameter interpolation" (fun () ->
     )
   );
 
- (* also cover the recursive case with positional parameters *)
-
- (* probably should cover the named case for batch_size greater than data *)
- (* and the named case for batch size less than expected data *)
+  (* Cover the case with batch_size < length of substitution array *)
+  testAsync "Expect a SELECT with two positional parameters to succeed if batched" (fun finish ->
+  let decoder json = Json.Decode.({
+    id = json |> field "id" int;
+    code = json |> field "code" string;
+  }) in
+  let params = `Positional (jsonIntMatrix [|[|1;2;3|]|]) in
+  let batch_size = 2 in
+  Sql.query_batch conn ~batch_size ~sql:"SELECT * FROM test.simple WHERE test.simple.id IN (?)" ~params (fun res ->
+  match res with
+  | `Error e -> let _ = Js.log e in finish (fail "see log")
+  | `Select (rows, _) ->
+    Belt_Array.map rows decoder
+    |> Expect.expect
+    |> Expect.toHaveLength 3
+    |> finish
+  )
+  );
 
   (* I am unsure if this should match on an error code (not implemented), simply 'ERR_INVALID_QUERY', or a detailed error message *)
   testAsync "Expect a SELECT with two positional parameters for two variable substitutions to succeed if batched" (fun finish ->
@@ -108,38 +122,6 @@ describe "Test parameter interpolation" (fun () ->
       | _ -> fail "Unexpected failure mode" |> finish
     )
   );
-  (* testAsync "Expect a SELECT with two parameters to fail if not batched" (fun finish ->
-    let params = Some(`Positional ( jsonIntMatrix [|[|1;2|]|])) in
-    Sql.query conn ~sql:"SELECT * FROM test.simple WHERE test.simple.id IN (?)" ?params (fun res ->
-    match res with
-    | `Select (_, _) ->
-      fail "A select with an IN should have been rejected."
-      |> finish
-    | `Error e ->
-      match e with
-      | SqlCommon.InvalidQuery s -> Expect.expect s |> Expect.toContainString "ERR_INVALID_QUERY" |> finish
-      | _ -> fail "Unexpected failure mode" |> finish
-    )
-  ); *)
 
-
-
-  (* this test must also fail *)
-  (* testAsync "Expect a SELECT with two positional parameters for two variable substitutions to succeed if batched" (fun finish ->
-    let decoder json = Json.Decode.({
-     id = json |> field "id" int;
-     code = json |> field "code" string;
-    }) in
-    let params = `Positional (jsonIntMatrix [|[|1;2|]; [|111|]|]) in
-    let batch_size = 10 in
-    Sql.query_batch conn ~batch_size ~sql:"SELECT * FROM test.simple WHERE test.simple.id IN (?) AND test.simple.number IN (?)" ~params (fun res ->
-    match res with
-    | `Error e -> let _ = Js.log e in finish (fail "see log")
-    | `Select (rows, _) ->
-      Belt_Array.map rows decoder
-      |> Expect.expect
-      |> Expect.toHaveLength 2
-      |> finish
-    )
-  ); *)
-);
+  (* What about batched queries with named parameters? *)
+  );
