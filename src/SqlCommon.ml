@@ -51,13 +51,6 @@ module type Make_store = sig
       ?database:string ->
       unit -> connection
 
-  (* val query :
-  connection ->
-  sql:string ->
-  ?params:params ->
-  ([`Error of exn | `Select of Js.Json.t * Js.Json.t] -> unit)
-  -> unit *)
-
   val query :
     connection ->
     sql:string ->
