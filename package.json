@@ -1,6 +1,6 @@
 {
   "name": "bs-sql-common",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "A common interface common for SQL drivers.",
   "scripts": {
     "build": "bsb -make-world",
@@ -8,8 +8,15 @@
     "clean": "bsb -clean-world",
     "coverage": "nyc report --temp-directory=coverage --reporter=text-lcov | coveralls",
     "install:peers": "yarn add $(jq -r '.peerDependencies|keys|join(\" \")' package.json)",
+    "precommit": "lint-staged",
     "test": "yarn run clean; yarn run build; jest --coverage && yarn run coverage",
     "watch:jest": "jest --coverage --watchAll"
+  },
+  "lint-staged": {
+    "*.{re,rei}": [
+      "refmt --in-place",
+      "git add"
+    ]
   },
   "keywords": [
     "BuckleScript",
@@ -32,17 +39,19 @@
   "author": "Nathan Sculli <scull7@gmail.com>",
   "license": "MIT",
   "dependencies": {
+    "@glennsl/bs-json": "^2.0.0",
     "sqlstring": "^2.3.1"
   },
   "devDependencies": {
     "@glennsl/bs-jest": "^0.4.2",
-    "bs-mysql2": "^3.0.2",
-    "coveralls": "^3.0.0",
-    "mysql2": "^1.5.2",
-    "nyc": "^11.4.1"
+    "bs-mysql2": "^4.0.0",
+    "coveralls": "^3.0.1",
+    "husky": "^0.14.3",
+    "lint-staged": "^7.1.2",
+    "mysql2": "^1.5.3",
+    "nyc": "^11.8.0"
   },
   "peerDependencies": {
-    "@glennsl/bs-json": "^1.2.0",
-    "bs-platform": "^2.2.3"
+    "bs-platform": "^3.1.5"
   }
 }

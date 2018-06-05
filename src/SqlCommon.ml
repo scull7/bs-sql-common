@@ -51,12 +51,20 @@ module type Make_store = sig
       ?database:string ->
       unit -> connection
 
+  (* val query :
+  connection ->
+  sql:string ->
+  ?params:params ->
+  ([`Error of exn | `Select of Js.Json.t * Js.Json.t] -> unit)
+  -> unit *)
+
   val query :
     connection ->
     sql:string ->
     ?params:params ->
     ([`Error of exn | `Select of rows * meta] -> unit)
     -> unit
+
   val query_batch :
     connection ->
     ?batch_size:int ->
@@ -64,6 +72,7 @@ module type Make_store = sig
     params:[`Positional of Js.Json.t] ->
     ([`Error of exn | `Select of rows * meta] -> unit)
     -> unit
+
   val mutate :
     connection ->
     sql:string ->
@@ -113,7 +122,7 @@ module Make_sql(Driver: Queryable) = struct
     Do not use query_batch for queries with multiple parameters - use a non-batched operation instead
   ")
 
-  let string_contains_in str =
+  let query_contains_in str =
     let re = [%re "/\\bin\\b/i"] in
     let re_result = Js.Re.exec str re in
     match re_result with
@@ -129,22 +138,27 @@ module Make_sql(Driver: Queryable) = struct
     )
 
   let query conn ~sql ?params cb =
-    match (string_contains_in sql) with
+    match (query_contains_in sql) with
     | true -> cb (`Error invalid_query_because_of_in)
     | false -> query_exec conn ~sql ?params cb
 
-  let query_batch conn ?batch_size ~sql ~params cb =
+ let query_batch conn ?batch_size ~sql ~params cb =
     match (SqlCommonBatchQuery.valid_query_params params) with
     | true -> SqlCommonBatchQuery.query (query_exec conn) ?batch_size ~sql ~params cb
     | false -> cb (`Error invalid_query_because_of_param_count)
 
-  let mutate conn ~sql ?params cb =
+  let mutate_exec conn ~sql ?params cb =
     Driver.execute conn sql params (fun res ->
       match res with
       | `Select _ -> cb (`Error invalid_response_select)
       | `Mutation (changed, last_id)-> cb (`Mutation (changed, last_id))
       | `Error e -> cb (`Error e)
     )
+
+  let mutate conn ~sql ?params cb =
+    match (query_contains_in sql) with
+    | true -> cb (`Error invalid_query_because_of_in)
+    | false -> mutate_exec conn ~sql ?params cb
 
   let mutate_batch conn ?batch_size ~table ~columns ~rows cb =
     SqlCommonBatchInsert.insert (mutate conn) ?batch_size ~table ~columns ~rows cb
