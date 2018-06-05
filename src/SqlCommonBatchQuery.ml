@@ -35,7 +35,6 @@ let unwrap params =
 
 let query_batch ~execute ~sql ~params ~fail ~ok _ =
   let sql_with_params = sqlformat sql params in
-  let _ = Js.log("in query_batch", sql_with_params) in
   db_call ~execute ~sql:sql_with_params ~fail ~ok ()
 
   let iterate ~query_batch_partial ~batch_size ~params ~fail ~ok ~prev _ =
@@ -75,7 +74,6 @@ let rec run ~batch_size ~iterator ~fail ~ok iteration =
 
 let valid_query_params params =
   let array_params = to_array (unwrap params) in
-  let _ = Js.log array_params in
   match (Belt_Array.length array_params) with
   | 1 -> true
   | _ -> false
