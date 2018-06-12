@@ -30,6 +30,40 @@ describe "Test parameter interpolation" (fun () ->
   let conn = TestUtil.connect () in
   let _ = afterAll (fun () -> Sql.close conn) in
   let decoder json = Json.Decode.({ result = json |> field "result" int; }) in
+  let table_sql = {|
+    CREATE TABLE IF NOT EXISTS test.simple (
+      `id` bigint(20) NOT NULL AUTO_INCREMENT
+    , `code` varchar(32) NOT NULL
+    , PRIMARY KEY(`id`)
+    )
+  |}
+  in
+  let rows_sql = {| INSERT INTO test.simple (code) values ("foo"), ("bar"), ("baz") |}
+  in
+  let drop next =
+    let _ = Sql.mutate conn ~sql:"DROP TABLE IF EXISTS test.simple" (fun resp ->
+      match resp with
+      | `Error e -> let _ = Js.log2 "DROP FAILED: " e in raise e
+      | `Mutation _ -> next ()
+    ) in ()
+  in
+  let create next =
+    let _ = Sql.mutate conn ~sql:table_sql (fun resp ->
+      match resp with
+      | `Error e -> let _ = Js.log2 "CREATE FAILED: " e in raise e
+      | `Mutation _ -> next ()
+    ) in ()
+  in
+  let insert next =
+    let _ = Sql.mutate conn ~sql:rows_sql (fun resp ->
+      match resp with
+      | `Error e -> let _ = Js.log2 "INSERT FAILED: " e in raise e
+      | `Mutation _ -> next ()
+    ) in ()
+  in
+  let _ = beforeAllAsync (fun finish ->
+    drop (fun _ -> create (fun _ -> insert finish)))
+  in
 
   describe "Standard (positional) parameters" (fun () ->
     let name = "Expect parameters to be substituted properly" in
@@ -70,7 +104,7 @@ describe "Test parameter interpolation" (fun () ->
   );
 
   (* Cover the case with batch_size > length of substitution array *)
-  testAsync "Expect a SELECT with two positional parameters to succeed if batched" (fun finish ->
+  testAsync "Expect a SELECT with two positional parameters to succeed if batched (A)" (fun finish ->
     let decoder json = Json.Decode.({
      id = json |> field "id" int;
      code = json |> field "code" string;
@@ -89,7 +123,7 @@ describe "Test parameter interpolation" (fun () ->
   );
 
   (* Cover the case with batch_size < length of substitution array *)
-  testAsync "Expect a SELECT with two positional parameters to succeed if batched" (fun finish ->
+  testAsync "Expect a SELECT with two positional parameters to succeed if batched (B)" (fun finish ->
   let decoder json = Json.Decode.({
     id = json |> field "id" int;
     code = json |> field "code" string;
@@ -139,4 +173,3 @@ describe "Test parameter interpolation" (fun () ->
     )
   );
 );
-
