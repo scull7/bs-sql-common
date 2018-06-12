@@ -3,7 +3,7 @@ exception InvalidResponse of string
 
 module type Queryable = sig
   type connection
-  type meta = MySql2.meta_record array
+  type meta = MySql2.metaRecord array
   type rows = Js.Json.t array
 
   type params =

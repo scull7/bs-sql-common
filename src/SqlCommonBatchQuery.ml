@@ -9,7 +9,7 @@ external to_params : 'a -> [`Positional of Js.Json.t] = "%identity"
 type iteration = {
   params: [`Positional of Js.Json.t];
   data: Js.Json.t array;
-  meta: MySql2.meta_record array;
+  meta: MySql2.metaRecord array;
 }
 
 let iteration ?prev params data meta  =
