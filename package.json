@@ -7,7 +7,6 @@
     "start": "bsb -make-world -w",
     "clean": "bsb -clean-world",
     "coverage": "nyc report --temp-directory=coverage --reporter=text-lcov | coveralls",
-    "install:peers": "yarn add $(jq -r '.peerDependencies|keys|join(\" \")' package.json)",
     "precommit": "lint-staged",
     "test": "yarn run clean; yarn run build; jest --coverage && yarn run coverage",
     "watch:jest": "jest --coverage --watchAll"
@@ -45,13 +44,12 @@
   "devDependencies": {
     "@glennsl/bs-jest": "^0.4.2",
     "bs-mysql2": "^4.0.0",
+    "bs-platform": "^3.1.5",
     "coveralls": "^3.0.1",
     "husky": "^0.14.3",
     "lint-staged": "^7.1.2",
     "mysql2": "^1.5.3",
     "nyc": "^11.8.0"
   },
-  "peerDependencies": {
-    "bs-platform": "^3.1.5"
-  }
+  "peerDependencies": {}
 }
