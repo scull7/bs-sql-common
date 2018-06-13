@@ -1,5 +1,8 @@
-external sqlformat : string -> [`Positional of Js.Json.t] -> string = "format"
-[@@bs.module "sqlstring"]
+external sqlformat :
+  string
+  -> ([`Positional of Js.Json.t][@bs.unwrap])
+  -> string
+  = "format" [@@bs.module "sqlstring"]
 
 external array_to_params : 'a array -> [`Positional of Js.Json.t] = "%identity"
 external params_to_array : [`Positional of Js.Json.t] -> 'a array = "%identity"

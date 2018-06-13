@@ -70,12 +70,12 @@ describe "Raw SQL Query Test Sequence" (fun () ->
   testAsync "Expect an error result for an SELECT query called via mutate" (fun finish ->
     Sql.mutate conn ~sql:"SELECT * FROM test.simple" (fun resp ->
       match resp with
+      | `Mutation _ ->
+        fail "This should have returned an InvalidResponse exception" |> finish
       | `Error e ->
         match e with
         | SqlCommon.InvalidResponse s -> Expect.expect s |> Expect.toContainString "ERR_UNEXPECTED_SELECT" |> finish
         | _ -> fail "Unexpected failure mode" |> finish
-      | _ ->
-        fail "This should have returned an InvalidResponse exception" |> finish
     )
   );
 
@@ -108,12 +108,12 @@ describe "Raw SQL Query Test Sequence" (fun () ->
   testAsync "Expect an error result for an INSERT called via query" (fun finish ->
     Sql.query conn ~sql:"INSERT INTO test.simple (code) VALUES ('failure')" (fun res ->
       match res with
+      | `Select _ ->
+        fail "This should have returned an InvalidResponse exception" |> finish
       | `Error e ->
         match e with
         | SqlCommon.InvalidResponse s -> Expect.expect s |> Expect.toContainString "ERR_UNEXPECTED_MUTATION" |> finish
         | _ -> fail "Unexpected failure mode" |> finish
-      | _ ->
-        fail "This should have returned an InvalidResponse exception" |> finish
     )
   );
 

@@ -1,5 +1,8 @@
-external sqlformat : string -> 'a Js.Array.t -> string = "format"
-[@@bs.module "sqlstring"]
+external sqlformat :
+ string
+  -> 'a Js.Array.t
+  -> string
+ = "format" [@@bs.module "sqlstring"]
 
 type 'a iteration = {
   rows: 'a array;
