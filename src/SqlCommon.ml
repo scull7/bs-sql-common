@@ -131,9 +131,7 @@ module Make_sql(Driver: Queryable) = struct
     )
 
   let query conn ~sql ?params cb =
-    match (query_contains_in sql) with
-    | true -> cb (`Error invalid_query_because_of_in)
-    | false -> query_exec conn ~sql ?params cb
+    query_exec conn ~sql ?params cb
 
  let query_batch conn ?batch_size ~sql ~params cb =
     match (SqlCommonBatchQuery.valid_query_params params) with
