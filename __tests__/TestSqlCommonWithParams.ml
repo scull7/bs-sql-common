@@ -8,6 +8,11 @@ type result = {
   result: int;
 }
 
+type simple = {
+  id: int;
+  code: string;
+}
+
 let get_result { result } = result
 
 let expect name value decoder next res =
@@ -25,6 +30,40 @@ describe "Test parameter interpolation" (fun () ->
   let conn = TestUtil.connect () in
   let _ = afterAll (fun () -> Sql.close conn) in
   let decoder json = Json.Decode.({ result = json |> field "result" int; }) in
+  let table_sql = {|
+    CREATE TABLE IF NOT EXISTS test.simple (
+      `id` bigint(20) NOT NULL AUTO_INCREMENT
+    , `code` varchar(32) NOT NULL
+    , PRIMARY KEY(`id`)
+    )
+  |}
+  in
+  let rows_sql = {| INSERT INTO test.simple (code) values ("foo"), ("bar"), ("baz") |}
+  in
+  let drop next =
+    let _ = Sql.mutate conn ~sql:"DROP TABLE IF EXISTS test.simple" (fun resp ->
+      match resp with
+      | `Error e -> let _ = Js.log2 "DROP FAILED: " e in raise e
+      | `Mutation _ -> next ()
+    ) in ()
+  in
+  let create next =
+    let _ = Sql.mutate conn ~sql:table_sql (fun resp ->
+      match resp with
+      | `Error e -> let _ = Js.log2 "CREATE FAILED: " e in raise e
+      | `Mutation _ -> next ()
+    ) in ()
+  in
+  let insert next =
+    let _ = Sql.mutate conn ~sql:rows_sql (fun resp ->
+      match resp with
+      | `Error e -> let _ = Js.log2 "INSERT FAILED: " e in raise e
+      | `Mutation _ -> next ()
+    ) in ()
+  in
+  let _ = beforeAllAsync (fun finish ->
+    drop (fun _ -> create (fun _ -> insert finish)))
+  in
 
   describe "Standard (positional) parameters" (fun () ->
     let name = "Expect parameters to be substituted properly" in
@@ -63,6 +102,62 @@ describe "Test parameter interpolation" (fun () ->
       | _ -> fail "Unexpected failure mode" |> finish
     )
   );
+
+  (* Cover the case with batch_size > length of substitution array *)
+  testAsync "Expect a SELECT with two positional parameters to succeed if batched (A)" (fun finish ->
+    let decoder json = Json.Decode.({
+     id = json |> field "id" int;
+     code = json |> field "code" string;
+    }) in
+    let params = `Positional (jsonIntMatrix [|[|1;2|]|]) in
+    let batch_size = 10 in
+    Sql.query_batch conn ~batch_size ~sql:"SELECT * FROM test.simple WHERE test.simple.id IN (?)" ~params (fun res ->
+    match res with
+    | `Error e -> let _ = Js.log e in finish (fail "see log")
+    | `Select (rows, _) ->
+      Belt_Array.map rows decoder
+      |> Expect.expect
+      |> Expect.toHaveLength 2
+      |> finish
+    )
+  );
+
+  (* Cover the case with batch_size < length of substitution array *)
+  testAsync "Expect a SELECT with two positional parameters to succeed if batched (B)" (fun finish ->
+  let decoder json = Json.Decode.({
+    id = json |> field "id" int;
+    code = json |> field "code" string;
+  }) in
+  let params = `Positional (jsonIntMatrix [|[|1;2;3|]|]) in
+  let batch_size = 2 in
+  Sql.query_batch conn ~batch_size ~sql:"SELECT * FROM test.simple WHERE test.simple.id IN (?)" ~params (fun res ->
+  match res with
+  | `Error e -> let _ = Js.log e in finish (fail "see log")
+  | `Select (rows, _) ->
+    Belt_Array.map rows decoder
+    |> Expect.expect
+    |> Expect.toHaveLength 3
+    |> finish
+  )
+  );
+
+  (* I am unsure if this should match on an error code (not implemented), simply 'ERR_INVALID_QUERY', or a detailed error message *)
+  testAsync "Expect a SELECT with two positional parameters for two variable substitutions to succeed if batched" (fun finish ->
+    let params = `Positional (jsonIntMatrix [|[|1;2|]; [|111; 222|]|]) in
+    let batch_size = 10 in
+    Sql.query_batch conn ~batch_size ~sql:"SELECT * FROM test.simple WHERE test.simple.id IN (?) AND test.simple.number IN (?)" ~params (fun res ->
+    match res with
+    | `Select (_, _) ->
+      fail "A select with two parameters should have been rejected."
+      |> finish
+    | `Error e ->
+      match e with
+      | SqlCommon.InvalidQuery s -> Expect.expect s |> Expect.toContainString "Do not use query_batch for queries with multiple parameters" |> finish
+      | _ -> fail "Unexpected failure mode" |> finish
+    )
+  );
+
+  (* What about batched queries with named parameters? *)
 
   testAsync "Expect a UPDATE with two parameters to fail if not batched" (fun finish ->
     let params = Some(`Positional ( jsonIntMatrix [|[|2;3|]|])) in

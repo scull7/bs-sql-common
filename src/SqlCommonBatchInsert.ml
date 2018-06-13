@@ -1,4 +1,3 @@
-
 external sqlformat : string -> 'a Js.Array.t -> string = "format"
 [@@bs.module "sqlstring"]
 

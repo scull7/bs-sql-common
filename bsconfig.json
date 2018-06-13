@@ -14,11 +14,15 @@
     }
   ],
   "bs-dev-dependencies": [
-    "@glennsl/bs-jest",
-    "@glennsl/bs-json",
-    "bs-mysql2"
+    "@glennsl/bs-jest"
   ],
-  "bs-dependencies": [],
-  "bsc-flags": [ "-bs-no-version-header", "-bs-super-errors" ],
+  "bs-dependencies": [
+    "bs-mysql2",
+    "@glennsl/bs-json"
+  ],
+  "bsc-flags": [
+    "-bs-no-version-header",
+    "-bs-super-errors"
+  ],
   "refmt": 3
 }
