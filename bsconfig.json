@@ -7,11 +7,7 @@
   },
   "suffix": ".bs.js",
   "sources": [
-    "src",
-    {
-      "dir": "__tests__",
-      "type": "dev"
-    }
+    "src"
   ],
   "bs-dev-dependencies": [
     "@glennsl/bs-jest"
