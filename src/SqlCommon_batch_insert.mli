@@ -12,4 +12,5 @@ val start :
   rows: Js.Json.t array ->
   ((int, exn) Belt.Result.t -> unit) ->
   unit
+
 end

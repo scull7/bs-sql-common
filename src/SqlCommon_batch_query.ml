@@ -4,30 +4,23 @@ module type Queryable = SqlCommon_queryable.Queryable
 
 module Make(Driver: Queryable) = struct
   module Params = Driver.Params
-  module Select = Driver.Select
 
   module Tracker = struct
     type t = {
       batch_size: int;
       params: Js.Json.t array;
       cursor: int;
-      response: Select.t option;
+      response: Driver.Select.t option;
     }
 
-    let make batch_size json =
-      match (json |. Js.Json.classify) with
-      | Js.Json.JSONArray params ->
-          { batch_size; params; cursor = 0; response = None } |. Belt.Result.Ok
-      | _ ->
-          "Array"
-          |. Exn.Invalid.Param.unsupported_param_type
-          |. Belt.Result.Error
+    let make batch_size params =
+      { batch_size; params; cursor = 0; response = None }
 
     let concatSelect t select =
       { t with response =
           match t.response with
           | None -> Some select
-          | Some s -> Some (Select.concat s select)
+          | Some s -> Some (Driver.Select.concat s select)
       }
 
     let next t = { t with cursor = t.cursor + t.batch_size }
@@ -41,14 +34,7 @@ module Make(Driver: Queryable) = struct
   end
 
   let execute ~driver ~sql ~params resolver =
-     let sql = SqlCommon_sql.format sql params
-     in
-     driver ~sql (fun res ->
-      match res with
-      | `Error e -> e |. Belt.Result.Error |. resolver
-      | `Select s -> s |. Belt.Result.Ok |. resolver
-    )
-    |. ignore
+    driver ~sql:(SqlCommon_sql.format sql params) resolver |. ignore
 
   (*
    * ## Iterate
@@ -62,13 +48,8 @@ module Make(Driver: Queryable) = struct
     in
     Batch.trampoline (fun _ ->
       execute ~driver ~sql ~params:current (fun res ->
-        match res with
-        | Belt.Result.Error error -> error |. Belt.Result.Error |. next
-        | Belt.Result.Ok select ->
-            tracker
-            |. Tracker.concatSelect select
-            |. Belt.Result.Ok
-            |. next
+        Belt.Result.map res (fun s -> Tracker.concatSelect tracker s)
+        |. next
       )
     )
     |. ignore
@@ -92,19 +73,17 @@ module Make(Driver: Queryable) = struct
    *)
     let start ~driver ?batch_size ~sql ~params:(`Positional json) callback =
       let batch_size = Batch.size batch_size in
-      let tracker = Tracker.make batch_size json in
+      let tracker = Belt.Result.Ok (Tracker.make batch_size json) in
+      let no_response = Exn.Invalid.Response.expected_select_no_response in
       let resolver = (fun res ->
-        match res with
-        | Belt.Result.Error error -> (`Error error) |. callback
-        | Belt.Result.Ok tracker ->
-            tracker
-            |. Tracker.response
-            |. (fun t ->
-                match t with
-                | None -> `Error Exn.Invalid.Response.expected_select_no_response
-                | Some t -> `Select t
-            )
-            |. callback
+        res
+        |. Belt.Result.map Tracker.response
+        |. Belt.Result.flatMap (fun res ->
+            match res with
+            | None -> no_response |. Belt.Result.Error
+            | Some res -> res |. Belt.Result.Ok
+        )
+        |. callback
       )
       in
       run ~driver ~sql ~resolver tracker |. ignore
