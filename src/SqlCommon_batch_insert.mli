@@ -9,7 +9,7 @@ val start :
   ?batch_size:int ->
   table:string ->
   columns: string array ->
-  rows: 'b array ->
+  rows: Js.Json.t array ->
   ((int, exn) Belt.Result.t -> unit) ->
   unit
 end
