@@ -1,20 +1,11 @@
 module Make (Driver: SqlCommon_queryable.Queryable) : sig
-  val close : Driver.Connection.t -> unit
-
-  val connect :
-    ?host:string ->
-    ?port:int ->
-    ?user:string ->
-    ?password:string ->
-    ?database:string ->
-    unit -> Driver.Connection.t
 
   module Select : sig
     val query :
       Driver.Connection.t ->
       ?params: Driver.Params.t ->
       sql: string ->
-      ([ | `Select of Driver.Select.t  | `Error of exn ] -> unit) ->
+      ((Driver.Select.t, exn) Belt.Result.t -> unit) ->
       unit
   end
 
@@ -23,7 +14,7 @@ module Make (Driver: SqlCommon_queryable.Queryable) : sig
       Driver.Connection.t ->
       ?params: Driver.Params.t ->
       sql: string ->
-      ([ | `Mutation of Driver.Mutation.t  | `Error of exn ] -> unit) ->
+      ((Driver.Mutation.t, exn) Belt.Result.t -> unit) ->
       unit
   end
 end

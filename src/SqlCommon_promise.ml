@@ -11,8 +11,8 @@ module Make(Driver: Queryable) = struct
       Js.Promise.make (fun ~resolve ~reject ->
         Callback.Select.query db ?params ~sql (fun res ->
           match res with
-          | `Error e -> reject e [@bs]
-          | `Select select -> resolve select [@bs]
+          | Belt.Result.Error exn -> reject exn [@bs]
+          | Belt.Result.Ok select -> resolve select [@bs]
         )
       )
   end
@@ -22,8 +22,8 @@ module Make(Driver: Queryable) = struct
       Js.Promise.make (fun ~resolve ~reject ->
         Callback.Mutate.run db ?params ~sql (fun res ->
           match res with
-          | `Error e -> reject e [@bs]
-          | `Mutation mutation -> resolve mutation [@bs]
+          | Belt.Result.Error exn -> reject exn [@bs]
+          | Belt.Result.Ok mutation -> resolve mutation [@bs]
         )
       )
   end

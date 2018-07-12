@@ -3,12 +3,7 @@ module Make(Driver: SqlCommon_queryable.Queryable): sig
 val start :
   driver:(
     sql:string ->
-    (
-      [<
-      | `Error of exn
-      | `Mutation of Driver.Mutation.t
-      ] -> unit
-    ) ->
+    ((Driver.Mutation.t, exn) Belt.Result.t -> unit) ->
     unit
   ) ->
   ?batch_size:int ->

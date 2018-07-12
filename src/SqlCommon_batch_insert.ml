@@ -4,14 +4,9 @@ module type Queryable = SqlCommon_queryable.Queryable
 module Make(Driver: Queryable) = struct
 
   let execute ~driver ~sql resolver =
-    let _ = driver ~sql (fun response ->
-      match response with
-      | `Error error -> error |. Belt.Result.Error |. resolver
-      | `Mutation m ->
-          m
-          |. Driver.Mutation.affectedRows
-          |. Belt.Result.Ok
-          |. resolver
+    let _ = driver ~sql (fun res ->
+      Belt.Result.map res (fun m -> m |. Driver.Mutation.affectedRows)
+      |. resolver
     )
     in ()
 
@@ -61,22 +56,10 @@ module Make(Driver: Queryable) = struct
       |. ignore
 
   (*
-   * `result` and `driver` types are an attempt to coerce the 
-   * type system into the desired behavior
-   *)
-  type result = [ `Error of exn | `Mutation of Driver.Mutation.t]
-
-  type driver =
-    (
-      sql: string ->
-      (result -> unit) ->
-      unit
-    )
-  (*
    * ## Start
    * Initiate the insert loop.
    *)
-  let start ~driver:driver ?batch_size ~table ~columns ~rows callback =
+  let start ~driver ?batch_size ~table ~columns ~rows callback =
     let batch_size = Batch.size batch_size in
     let insert ~rows next =
       execute ~driver ~sql:(Batch.Sql.insert table columns rows) next
