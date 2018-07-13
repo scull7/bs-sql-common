@@ -20,6 +20,12 @@ module Make(Driver: Queryable) = struct
     let toString = Driver.Id.toString
   end
 
+  module Params = struct
+    let named = Driver.Params.named
+
+    let positional = Driver.Params.positional
+  end
+
   module Response = struct
     module Mutation = struct
       let insertId = Driver.Mutation.insertId

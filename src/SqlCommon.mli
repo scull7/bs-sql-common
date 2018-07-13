@@ -27,6 +27,12 @@ module Make(Driver: Queryable): sig
     val toString : Driver.Id.t -> string
   end
 
+  module Params : sig
+    val named : Js.Json.t -> Driver.Params.t
+
+    val positional : Js.Json.t -> Driver.Params.t
+  end
+
   module Response: sig
     module Mutation: sig
       val insertId : Driver.Mutation.t -> Id.t option
