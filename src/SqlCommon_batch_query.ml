@@ -64,6 +64,7 @@ module Make(Driver: Queryable) = struct
     match response with
     | Belt.Result.Error _ -> response |. resolver
     | Belt.Result.Ok tracker ->
+        let _ = Js.log3 "HAS MORE: " tracker (Tracker.hasMore tracker) in
         match (tracker |. Tracker.hasMore) with
         | false -> response |. resolver
         | true -> iterate ~driver ~sql ~tracker next
@@ -86,7 +87,12 @@ module Make(Driver: Queryable) = struct
         |. callback
       )
       in
-      run ~driver ~sql ~resolver tracker |. ignore
+      match (Batch.Params.ensure_single_substitution_param json) with
+      | true -> run ~driver ~sql ~resolver tracker |. ignore
+      | false ->
+          Exn.Invalid.Query.illegal_use_of_multiple_params
+          |. Belt.Result.Error
+          |. callback
 
 
 end

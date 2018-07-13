@@ -159,7 +159,8 @@ describe "Test parameter interpolation" (fun () ->
       fail "A select with two parameters should have been rejected." |. finish
     | Belt.Result.Error e ->
       match e with
-      | SqlCommon.Exn.InvalidQuery _ -> pass |. finish
+      | SqlCommon.Exn.Invalid.Query.IllegalUseOfMultipleParams _ ->
+          pass |. finish
       | e -> e |. Js.String.make |. fail |. finish
     )
   );
@@ -182,7 +183,7 @@ describe "Test parameter interpolation" (fun () ->
       fail "A mutation with an IN should have been rejected." |. finish
     | Belt.Result.Error e ->
       match e with
-      | SqlCommon.Exn.InvalidQuery _ -> pass |. finish
+      | SqlCommon.Exn.Invalid.Query.IllegalUseOfIn _ -> pass |. finish
       | e -> e |. Js.String.make |. fail |. finish
     )
   );
