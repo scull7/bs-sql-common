@@ -6,9 +6,9 @@
     "build": "bsb -make-world",
     "start": "bsb -make-world -w",
     "clean": "bsb -clean-world",
-    "coverage": "nyc report --temp-directory=coverage --reporter=text-lcov | coveralls",
+    "coverage": "nyc report --temp-directory=coverage --reporter=text-lcov",
     "precommit": "lint-staged",
-    "test": "yarn run clean; yarn run build; jest --coverage && yarn run coverage",
+    "test": "jest --coverage",
     "watch:jest": "jest --coverage --watchAll"
   },
   "lint-staged": {

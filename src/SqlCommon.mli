@@ -5,6 +5,8 @@ module type Queryable = SqlCommon_queryable.Queryable
 module Make(Driver: Queryable): sig
 
   module Connection: sig
+    type t
+
     val close: Driver.Connection.t -> unit
 
     val connect :
