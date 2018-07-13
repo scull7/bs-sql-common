@@ -1,6 +1,6 @@
 open Jest
 
-module Sql = SqlCommon.Make_sql(MySql2)
+module Sql = TestUtil.Sql
 
 type result = {
   search: string;
@@ -13,19 +13,25 @@ let decoder json = Json.Decode.({ search = json |> field "search" string; })
 let () =
 
 describe "Test Promise based API" (fun () ->
-  let conn = TestUtil.connect () in
-  let _ = afterAll (fun () -> Sql.close conn) in
-  let name = "Simple string interpolation query" in
-  testPromise name (fun () -> Js.Promise.(
-    let params = Some(
-      `Positional (Json.Encode.array Json.Encode.string [|"%schema"|])
-    ) in
-    Sql.Promise.query conn ~sql:"SELECT ? AS search" ?params ()
-    |> then_ (fun (rows, _) ->
-        Belt_Array.map rows (fun x -> x |> decoder |> get_search)
-        |> Expect.expect
-        |> Expect.toBeSupersetOf [|"%schema"|]
+  let db = TestUtil.connect () in
+  let _ = afterAll (fun () -> Sql.Connection.close db) in
+
+  testPromise "Simple string interpolation query" (fun () -> Js.Promise.(
+    let params =
+      Json.Encode.array Json.Encode.string [| "%schema" |]
+      |. Sql.Params.named
+      |. Some
+    in
+    Sql.Promise.query ~db ?params ~sql:"SELECT ? AS search"
+    |> then_ (fun select ->
+        select
+        |. Sql.Response.Select.mapDecoder (fun x -> x |. decoder |. get_search)
+        |. resolve
+    )
+    |> then_ (fun rows ->
+        Expect.expect rows
+        |> Expect.toBeSupersetOf [| "%schema" |]
         |> resolve
-      )
+    )
   ))
 );

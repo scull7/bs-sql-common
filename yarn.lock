@@ -470,16 +470,16 @@ browser-resolve@^1.11.2:
   dependencies:
     resolve "1.1.7"
 
-bs-mysql2@^4.0.0:
-  version "4.0.0"
-  resolved "https://registry.yarnpkg.com/bs-mysql2/-/bs-mysql2-4.0.0.tgz#8dacbe2474a75f5adb3e405b6c295b578f701e3f"
+bs-mysql2@^6.1.0:
+  version "6.1.0"
+  resolved "https://registry.yarnpkg.com/bs-mysql2/-/bs-mysql2-6.1.0.tgz#4f148468724612048d1d6da9303a593eb4e17ff0"
   dependencies:
     "@glennsl/bs-json" "^2.0.0"
     mysql2 "^1.5.3"
 
-bs-platform@^3.1.5:
-  version "3.1.5"
-  resolved "https://registry.yarnpkg.com/bs-platform/-/bs-platform-3.1.5.tgz#fb34ee4702bc9163848d5537096c4f31ebaeed40"
+bs-platform@^4.0.0:
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/bs-platform/-/bs-platform-4.0.0.tgz#4190460550414eecff92f1e2bbaf4d9c557b60af"
 
 bser@^2.0.0:
   version "2.0.0"
