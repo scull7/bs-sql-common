@@ -62,9 +62,9 @@ module type Queryable = sig
 
     val count : t -> int
 
-    val flatMap : t -> (Js.Json.t -> Meta.t array -> 'a) -> 'a array
+    val flatMap : t -> (Js.Json.t -> 'a) -> 'a array
 
-    val mapDecoder : t -> (Js.Json.t -> 'a) -> 'a array
+    val flatMapWithMeta : t -> (Js.Json.t -> Meta.t array -> 'a) -> 'a array
 
     val rows : t -> Js.Json.t array
   end

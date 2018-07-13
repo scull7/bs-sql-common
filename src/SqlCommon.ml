@@ -50,7 +50,7 @@ module Make(Driver: Queryable) = struct
 
       let flatMap = Driver.Select.flatMap
 
-      let mapDecoder = Driver.Select.mapDecoder
+      let flatMapWithMeta = Driver.Select.flatMapWithMeta
 
       let rows = Driver.Select.rows
 

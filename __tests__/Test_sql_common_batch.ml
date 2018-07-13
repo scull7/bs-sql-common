@@ -208,7 +208,7 @@ describe "SqlCommon :: Batch" (fun () ->
         ()
       |> Js.Promise.then_ (fun select ->
         select
-        |. Sql.Response.Select.mapDecoder decoder
+        |. Sql.Response.Select.flatMap decoder
         |. Belt.Array.map (fun x -> x.code)
         |. Js.Array.sortInPlace
         |. Expect.expect

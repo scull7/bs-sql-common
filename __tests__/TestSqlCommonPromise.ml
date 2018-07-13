@@ -25,7 +25,7 @@ describe "Test Promise based API" (fun () ->
     Sql.Promise.query ~db ?params ~sql:"SELECT ? AS search"
     |> then_ (fun select ->
         select
-        |. Sql.Response.Select.mapDecoder (fun x -> x |. decoder |. get_search)
+        |. Sql.Response.Select.flatMap (fun x -> x |. decoder |. get_search)
         |. resolve
     )
     |> then_ (fun rows ->

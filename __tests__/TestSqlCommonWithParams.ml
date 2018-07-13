@@ -20,7 +20,7 @@ let expect value decoder next res =
   | Belt.Result.Error e -> e |. Js.String.make |. fail |. next
   | Belt.Result.Ok select ->
     select
-    |. Sql.Response.Select.mapDecoder (fun x -> x |. decoder |. get_result)
+    |. Sql.Response.Select.flatMap (fun x -> x |. decoder |. get_result)
     |. Expect.expect
     |> Expect.toBeSupersetOf [|value|]
     |. next
@@ -84,7 +84,7 @@ describe "Test parameter interpolation" (fun () ->
     | Belt.Result.Error e -> e |. Js.String.make |. fail |. finish
     | Belt.Result.Ok select ->
         select
-        |. Sql.Response.Select.mapDecoder decoder
+        |. Sql.Response.Select.flatMap decoder
         |. Expect.expect
         |> Expect.toHaveLength 2
         |. finish
@@ -110,7 +110,7 @@ describe "Test parameter interpolation" (fun () ->
     | Belt.Result.Error e -> e |. Js.String.make |. fail |. finish
     | Belt.Result.Ok select ->
         select
-        |. Sql.Response.Select.mapDecoder decoder
+        |. Sql.Response.Select.flatMap decoder
         |. Expect.expect
         |> Expect.toHaveLength 3
         |. finish

@@ -43,7 +43,7 @@
   },
   "devDependencies": {
     "@glennsl/bs-jest": "^0.4.2",
-    "bs-mysql2": "^6.1.0",
+    "bs-mysql2": "^7.0.0",
     "bs-platform": "^4.0.0",
     "coveralls": "^3.0.1",
     "husky": "^0.14.3",

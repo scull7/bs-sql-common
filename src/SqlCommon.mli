@@ -55,12 +55,12 @@ module Make(Driver: Queryable): sig
 
       val count : Driver.Select.t -> int
 
-      val flatMap :
+      val flatMapWithMeta :
         Driver.Select.t ->
         (Js.Json.t -> Driver.Select.Meta.t array -> 'a) ->
         'a array
 
-      val mapDecoder : Driver.Select.t -> (Js.Json.t -> 'a) -> 'a array
+      val flatMap : Driver.Select.t -> (Js.Json.t -> 'a) -> 'a array
 
       val rows : Driver.Select.t -> Js.Json.t array
     end

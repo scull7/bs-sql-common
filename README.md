@@ -75,7 +75,7 @@ Sql.query ~db ~sql:"SHOW DATABASES" (fun res ->
   | Belt.Result.Error e -> raise e
   | Belt.Result.Ok select ->
     select
-    |. Sql.Response.Select.mapDecoder (Json.Decode.dict Json.Decode.string)
+    |. Sql.Response.Select.flatMap (Json.Decode.dict Json.Decode.string)
     |. Belt.Array.map (fun x -> Js.dict.unsafeGet x "Database")
     |. Expect.expect
     |> Expect.toContain @@ "test"
@@ -146,7 +146,7 @@ Sql.query(~db, ~sql:"SELECT :x + :y AS z", ~params, (res) =>
   | Belt.Result.Error => Js.log2("ERROR: ", e)
   | Belt.Result.Ok select =>
     select
-    |. Sql.Response.mapDecoder(decoder)
+    |. Sql.Response.flatMap(decoder)
     |. Js.log2("DECODED ROWS: ", _)
   }
 );
@@ -252,7 +252,7 @@ module Response: sig
       (Js.Json.t -> Driver.Select.Meta.t array -> 'a) ->
       'a array
 
-    val mapDecoder : Driver.Select.t -> (Js.Json.t -> 'a) -> 'a array
+    val flatMap : Driver.Select.t -> (Js.Json.t -> 'a) -> 'a array
 
     val rows : Driver.Select.t -> Js.Json.t array
   end
@@ -325,9 +325,9 @@ module type Queryable = sig
 
     val count : t -> int
 
-    val flatMap : t -> (Js.Json.t -> Meta.t array -> 'a) -> 'a array
+    val flatMapWithMeta : t -> (Js.Json.t -> Meta.t array -> 'a) -> 'a array
 
-    val mapDecoder : t -> (Js.Json.t -> 'a) -> 'a array
+    val flatMap : t -> (Js.Json.t -> 'a) -> 'a array
 
     val rows : t -> Js.Json.t array
   end

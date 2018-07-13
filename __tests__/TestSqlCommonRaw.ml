@@ -18,7 +18,7 @@ describe "Raw SQL Query Test" (fun () ->
       | Belt.Result.Error e -> raise e
       | Belt.Result.Ok select ->
         select
-        |. Sql.Response.Select.mapDecoder (Json.Decode.dict Json.Decode.string)
+        |. Sql.Response.Select.flatMap (Json.Decode.dict Json.Decode.string)
         |. Belt.Array.map (fun x -> Js.Dict.unsafeGet x "Database")
         |. Expect.expect
         |> Expect.toContain @@ "test"
@@ -100,7 +100,7 @@ describe "Raw SQL Query Test Sequence" (fun () ->
       match res with
       | Belt.Result.Error e -> e |. Js.String.make |. fail |. finish
       | Belt.Result.Ok select ->
-          Sql.Response.Select.mapDecoder select decoder
+          Sql.Response.Select.flatMap select decoder
           |> Expect.expect
           |> Expect.toHaveLength 0
           |> finish
@@ -143,7 +143,7 @@ describe "Raw SQL Query Test Sequence" (fun () ->
       | Belt.Result.Error e -> e |. Js.String.make |. fail |. finish
       | Belt.Result.Ok select ->
         select
-        |. Sql.Response.Select.mapDecoder decoder
+        |. Sql.Response.Select.flatMap decoder
         |. pick
         |. Expect.expect
         |> Expect.toBeSupersetOf [|true; true|]
@@ -161,7 +161,7 @@ describe "Raw SQL Query Test Sequence" (fun () ->
       | Belt.Result.Error e -> e |. Js.String.make |. fail |. finish
       | Belt.Result.Ok select ->
         select
-        |. Sql.Response.Select.mapDecoder decoder
+        |. Sql.Response.Select.flatMap decoder
         |. Expect.expect
         |> Expect.toHaveLength 4
         |> finish

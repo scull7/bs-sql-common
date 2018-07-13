@@ -470,9 +470,9 @@ browser-resolve@^1.11.2:
   dependencies:
     resolve "1.1.7"
 
-bs-mysql2@^6.1.0:
-  version "6.1.0"
-  resolved "https://registry.yarnpkg.com/bs-mysql2/-/bs-mysql2-6.1.0.tgz#4f148468724612048d1d6da9303a593eb4e17ff0"
+bs-mysql2@^7.0.0:
+  version "7.0.0"
+  resolved "https://registry.yarnpkg.com/bs-mysql2/-/bs-mysql2-7.0.0.tgz#676a6c7cc67cf20237d2514181cfc1cb5ff74d9e"
   dependencies:
     "@glennsl/bs-json" "^2.0.0"
     mysql2 "^1.5.3"

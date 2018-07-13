@@ -60,7 +60,7 @@ describe "SqlCommon :: Promise" (fun () ->
       )
       |> Js.Promise.then_ (fun select ->
         select
-        |. Sql.Response.Select.mapDecoder decoder
+        |. Sql.Response.Select.flatMap decoder
         |. Belt.Array.map (fun x -> (x.code, x.display))
         |. Expect.expect
         |> Expect.toEqual [| ("gandalf", "Gandalf the Grey") |]
