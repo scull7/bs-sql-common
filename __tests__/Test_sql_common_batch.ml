@@ -10,6 +10,7 @@ let table_sql = {j|
   , `code` varchar(32) NOT NULL
   , `desc` varchar(10) NOT NULL
   , PRIMARY KEY(id)
+  , UNIQUE KEY (`code`)
   )
 |j}
 
@@ -46,7 +47,7 @@ let failure_run_rows = Json.Encode.([|
   jsonArray [| (string "stampeders"); (string "cfl") |];
   jsonArray [| (string "roughriders"); (string "cfl") |];
   jsonArray [| (string "eskimos"); (string "cfl") |];
-  jsonArray [| (string "failure"); (string "this should fail to insert") |];
+  jsonArray [| (string "eskimos"); (string "failure") |];
   jsonArray [| (string "argonauts"); (string "cfl") |];
   jsonArray [| (string "alouettes"); (string "cfl") |];
 |])
