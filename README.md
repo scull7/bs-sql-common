@@ -10,41 +10,19 @@ A common interface for SQL-based Node.js drivers.
 To provide a common interface for MySQL, PostgreSQL and sqlite
 implementations.  
 
-### Version 2
+### Version 3
 A rewrite of the entire package to expose it as a Functor that can accept
-any module which implements the `Queryable` interface.
+any module which implements the [`Queryable`](#Queryable) interface.
 
-```ocaml
-module type Queryable = sig
-  type t
-  type meta
-  type rows = Js.Json.t array
+* Use [Belt.Result][belt-result] for responses so to better integrate with then
+  BuckleScript ecosystem.
 
-  type params =
-    [ `Named of Js.Json.t
-    | `Positional of Js.Json.t
-    ] option
+* Provide [response decoding and inspection](#Sql.Response) functions so that
+  the user has a consistent view into responses from any library.
 
-  type callback = exn Js.Nullable.t -> Js.Json.t -> Js.Json.t array -> unit
+* Provide an [ID type](#Sql.Id) that properly encodes large integers as strings.
 
-  val close : t -> unit
-
-  val parse_response :
-    Js.Json.t ->
-    Js.Json.t array ->
-    [> `Error of exn
-    |  `Mutation of int * int
-    |  `Select of rows * meta
-    ]
-
-  val execute : t -> string -> params -> callback -> unit
-end
-```
-
-The new interface provided through the Functor is simplified as it only contains
-six methods and uses Polymorphic variants for return states so that the user no
-longer requires structural knowledge of the SqlCommon package for response
-parsing.
+* Provide batch inserts and queries
 
 ## Status
 
@@ -84,15 +62,24 @@ yarn install --save bs-mysql2Â
 }
 ```
 ```ocaml
-  module Db = SqlCommon.Make_store(MySql.Connection)
+module Sql = SqlCommon.Make(MySql2)
 
-  let conn = MySql.Connection.make ~host="127.0.0.1" ~port=3306 ~user="root" ()
+let db = Sql.Connection.connect
+  ~host="127.0.0.1"
+  ~port=3306
+  ~user="root"
+  ()
 
-  Db.query conn ~sql:"SHOW DATABASES" (fun res ->
-    match res with
-    | `Error e -> Js.log2 "ERROR: " e
-    | `Select (rows, meta) -> Js.log3 "SELECT: " rows meta
-  )
+Sql.query ~db ~sql:"SHOW DATABASES" (fun res ->
+  match res with
+  | Belt.Result.Error e -> raise e
+  | Belt.Result.Ok select ->
+    select
+    |. Sql.Response.Select.mapDecoder (Json.Decode.dict Json.Decode.string)
+    |. Belt.Array.map (fun x -> Js.dict.unsafeGet x "Database")
+    |. Expect.expect
+    |> Expect.toContain @@ "test"
+)
 ```
 
 ## Usage
@@ -105,13 +92,13 @@ differing connection creation requirements.
 
 The following connection and module will be use within the rest of the examples.
 ```reason
-module Db = SqlCommon.Make_store(MySql.Connection);
+module Sql = SqlCommon.Make(MySql2);
 
-let conn = MySql.Connection.make(~host="127.0.0.1", ~port=3306, ~user="root", ());
+let db = Sql.Connection.connect(~host="127.0.0.1", ~port=3306, ~user="root", ());
 ```
 Assume the following statement occurs at the end of each example.
 ```reason
-Db.close(conn);
+Sql.Connection.close(conn);
 ```
 
 ### Standard Callback Interface
@@ -119,87 +106,245 @@ Db.close(conn);
 #### Standard Query Method
 
 ```reason
-
-Db.query(~sql="SHOW DATABASES", (res) =>
-  switch res {
-  | `Error e => Js.log2("ERROR; ", e)
-  | `Select (rows, meta) => Js.log3("SELECT: ", rows, meta)
-  }
+Sql.query(~db, ~sql="SHOW DATABASES",
+  fun
+  | Belt.Result.Error e => Js.log2("ERROR: ", e)
+  | Belt.Result.Ok select =>
+    select
+    |. Sql.Response.Select.rows
+    |. Js.log2("RESPONSE ROWS: ", _)
 );
 
-Db.mutate(~sql="INSERT INTO test (foo) VALUES (\"bar\")", (res) =>
-  switch res {
-  | `Error e => Js.log2("ERROR; ", e)
-  | `Mutation (count, id) => Js.log3("MUTATION: ", count, id)
-  }
-)
+Sql.mutate(
+  ~db,
+  ~sql="INSERT INTO test (foo) VALUES (?)",
+  ~params=Sql.Params.positional(Json.Encode.([|string("bar")|] |. array)),
+  (res) =>
+    fun
+    | Belt.Result.Error => Js.log2("ERROR: ", e)
+    | Belt.Result.Ok mutation =>
+      mutation
+      |. Sql.Response.Mutation.insertId
+      |. Js.log2("INSERT ID: ", _)
+);
 ```
 
 #### Prepared Statements - Named Placeholders
 
 ```reason
-let json = Some(`Named(
+let json = Sql.Params.named(
   Json.Encode.(object_([
   ("x", int(1)),
   ("y", int(2)),
   ]))
 ));
 
-Db.query(~sql:"SELECT :x + :y AS z", ?params, (res) =>
+let decoder = Json.Encode.array(Json.Encode.int)
+
+Sql.query(~db, ~sql:"SELECT :x + :y AS z", ~params, (res) =>
   switch res {
-  | `Error e => Js.log2("ERROR; ", e)
-  | `Select (rows, meta) => Js.log3("SELECT: ", rows, meta)
+  | Belt.Result.Error => Js.log2("ERROR: ", e)
+  | Belt.Result.Ok select =>
+    select
+    |. Sql.Response.mapDecoder(decoder)
+    |. Js.log2("DECODED ROWS: ", _)
   }
 );
 
-Db.mutate(~sql:"INSERT INTO test (foo, bar) VALUES (:x, :y)", ?params, (res) =>
+Sql.mutate(~db, ~sql:"INSERT INTO test (foo, bar) VALUES (:x, :y)", ~params, (res) =>
   switch res {
-  | `Error e => Js.log2("ERROR; ", e)
-  | `Mutation (count, id) => Js.log3("MUTATION: ", count, id)
+  | Belt.Result.Error => Js.log2("ERROR: ", e)
+  | Belt.Result.Ok mutation =>
+    mutation
+    |. Sql.Response.Mutation.insertId
+    |. Js.log2("INSERT ID: ", _)
   }
-)
+);
 ```
 
 #### Prepared Statements - Positional Placeholders
 
 ```reason
-let params = Some(`Positional(
+let params = Sql.Params.positional(
   Json.Encode.(array(int, [|5,6|]))
 ));
 
-Db.query(~sql:"SELECT 1 + ? + ? AS result", ?params, (res) =>
+Sql.query(~db, ~sql:"SELECT 1 + ? + ? AS result", ~params, (res) =>
   switch res {
-  | `Error e => Js.log2("ERROR; ", e)
-  | `Select (rows, meta) => Js.log3("SELECT: ", rows, meta)
+  | Belt.Result.Error => Js.log2("ERROR: ", e)
+  | Belt.Result.Ok select =>
+    select
+    |. Sql.Response.rows
+    |. Js.log2("RAW ROWS: ", _)
   }
 );
 
-Db.mutate(~sql:"INSERT INTO test (foo, bar) VALUES (?, ?)", ?params, (res) =>
+Sql.mutate(~db, ~sql:"INSERT INTO test (foo, bar) VALUES (?, ?)", ~params, (res) =>
   switch res {
-  | `Error e => Js.log2("ERROR; ", e)
-  | `Mutation (count, id) => Js.log3("MUTATION: ", count, id)
+  | Belt.Result.Error => Js.log2("ERROR: ", e)
+  | Belt.Result.Ok mutation =>
+    mutation
+    |. Sql.Response.Mutation.insertId
+    |. Js.log2("INSERT ID: ", _)
   }
-)
+);
 ```
 
 ### Promise Interface
 
 ```reason
-let params = Some(`Positional(
+let params = Sql.Params.positional(
   Json.Encode.(array(int, [|"%schema"|]))
 ));
-Db.query(conn, ~sql="SELECT ? AS search", ?params)
-|> Js.Promise.then_(((rows, meta)) => {
-  Js.log3("SELECT: ", rows, meta);
-  Db.close(conn);
-  Js.Promise.resolve(1);
-})
-|> Js.Promise.catch((err) => {
-  Js.log2("Failure!!!", err);
-  Db.close(conn);
-  Js.Promise.resolve(-1);
-});
+
+Sql.query(~db, ~params, ~sql="SELECT ? AS search")
+|> Js.Promise.then_(select =>
+  select
+  |. Sql.Response.rows
+  |. Js.log2("RAW ROWS: ", _)
+  |. ignore
+)
+|> Js.Promise.catch(err =>
+  Js.log2("Failure!!!", err)
+  |. ignore
+)
 ```
 
+## Sql.Id
+```ocaml
+module Id: sig
+  type t = Driver.Id.t
+
+  val fromJson : Js.Json.t -> Driver.Id.t
+
+  val toJson : Driver.Id.t -> Js.Json.t
+
+  val toString : Driver.Id.t -> string
+end
+```
+
+## Sql.Response
+```ocaml
+module Response: sig
+  module Mutation: sig
+    val insertId : Driver.Mutation.t -> Id.t option
+
+    val affectedRows: Driver.Mutation.t -> int
+  end
+
+  module Select: sig
+    module Meta : sig
+      val schema : Driver.Select.Meta.t -> string
+
+      val name : Driver.Select.Meta.t -> string
+
+      val table : Driver.Select.Meta.t -> string
+    end
+
+    val meta : Driver.Select.t -> Driver.Select.Meta.t array
+
+    val concat : Driver.Select.t -> Driver.Select.t -> Driver.Select.t
+
+    val count : Driver.Select.t -> int
+
+    val flatMap :
+      Driver.Select.t ->
+      (Js.Json.t -> Driver.Select.Meta.t array -> 'a) ->
+      'a array
+
+    val mapDecoder : Driver.Select.t -> (Js.Json.t -> 'a) -> 'a array
+
+    val rows : Driver.Select.t -> Js.Json.t array
+  end
+end
+```
+
+## Queryable Interface
+```ocaml
+module type Queryable = sig
+  module Connection : sig
+    type t
+
+    val connect :
+      ?host:string ->
+      ?port:int ->
+      ?user:string ->
+      ?password:string ->
+      ?database:string ->
+      unit -> t
+
+    val close : t -> unit
+  end
+
+  module Exn : sig
+    val fromJs : Js.Json.t -> exn
+  end
+
+  module Id : sig
+    type t
+
+    val fromJson : Js.Json.t -> t
+
+    val toJson : t -> Js.Json.t
+
+    val toString : t -> string
+  end
+
+  module Mutation : sig
+    type t
+
+    val insertId : t -> Id.t option
+
+    val affectedRows : t -> int
+  end
+
+  module Params : sig
+    type t
+
+    val named : Js.Json.t -> t
+
+    val positional : Js.Json.t -> t
+  end
+
+  module Select : sig
+    type t
+
+    module Meta : sig
+      type t
+
+      val schema : t -> string
+
+      val name : t -> string
+
+      val table : t -> string
+    end
+
+    val meta : t -> Meta.t array
+
+    val concat : t -> t -> t
+
+    val count : t -> int
+
+    val flatMap : t -> (Js.Json.t -> Meta.t array -> 'a) -> 'a array
+
+    val mapDecoder : t -> (Js.Json.t -> 'a) -> 'a array
+
+    val rows : t -> Js.Json.t array
+  end
+
+  type response =
+    [
+    | `Error of exn
+    | `Mutation of Mutation.t
+    | `Select of Select.t
+    ]
+
+  type callback = response -> unit
+
+  val execute : Connection.t -> string -> Params.t option -> callback -> unit
+end
+```
+
+[belt-result]: https://bucklescript.github.io/bucklescript/api/Belt.Result.html
 [bs-mysql2]: https://github.com/scull7/bs-mysql2
 [mysql2-custom-streams]: https://github.com/sidorares/node-mysql2/tree/master/documentation/Extras.md
