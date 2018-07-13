@@ -30,7 +30,7 @@ describe "Raw SQL Query Test" (fun () ->
 describe "Raw SQL Query Test Sequence" (fun () ->
   let db = TestUtil.connect () in
   let table_sql = {|
-    CREATE TABLE IF NOT EXISTS test.simple (
+    CREATE TABLE IF NOT EXISTS test.sql_common_raw (
       `id` bigint(20) NOT NULL AUTO_INCREMENT
     , `code` varchar(32) NOT NULL
     , PRIMARY KEY(`id`)
@@ -38,7 +38,7 @@ describe "Raw SQL Query Test Sequence" (fun () ->
   |}
   in
   let drop next =
-    let _ = Sql.mutate ~db ~sql:"DROP TABLE IF EXISTS test.simple" (fun resp ->
+    let _ = Sql.mutate ~db ~sql:"DROP TABLE IF EXISTS test.sql_common_raw" (fun resp ->
       match resp with
       | Belt.Result.Error e -> let _ = Js.log2 "DROP FAILED: " e in raise e
       | Belt.Result.Ok _ -> next ()
@@ -56,7 +56,7 @@ describe "Raw SQL Query Test Sequence" (fun () ->
   in
 
   testAsync "Expect a mutation result for an INSERT query" (fun finish ->
-    Sql.mutate ~db ~sql:"INSERT INTO test.simple (code) VALUES ('foo')" (fun resp ->
+    Sql.mutate ~db ~sql:"INSERT INTO test.sql_common_raw (code) VALUES ('foo')" (fun resp ->
       match resp with
       | Belt.Result.Error e -> let _ = Js.log e in finish (fail "see log")
       | Belt.Result.Ok mutation ->
@@ -69,7 +69,7 @@ describe "Raw SQL Query Test Sequence" (fun () ->
   );
 
   testAsync "Expect an error result for an SELECT query called via mutate" (fun finish ->
-    Sql.mutate ~db ~sql:"SELECT * FROM test.simple" (fun resp ->
+    Sql.mutate ~db ~sql:"SELECT * FROM test.sql_common_raw" (fun resp ->
       match resp with
       | Belt.Result.Ok _ ->
         fail "This should have returned an InvalidResponse exception" |> finish
@@ -81,7 +81,7 @@ describe "Raw SQL Query Test Sequence" (fun () ->
   );
 
   testAsync "Expect a mutation result for an INSERT query" (fun finish ->
-    Sql.mutate ~db ~sql:"INSERT INTO test.simple (code) VALUES ('bar'), ('baz')"
+    Sql.mutate ~db ~sql:"INSERT INTO test.sql_common_raw (code) VALUES ('bar'), ('baz')"
     (fun resp ->
       match resp with
       | Belt.Result.Error e -> e |. Js.String.make |. fail |. finish
@@ -96,7 +96,7 @@ describe "Raw SQL Query Test Sequence" (fun () ->
 
   testAsync "Expect a SELECT NULL to return an empty array" (fun finish ->
     let decoder = Json.Decode.dict (Json.Decode.nullable Json.Decode.string) in
-    Sql.query ~db ~sql:"SELECT NULL FROM test.simple WHERE false" (fun res ->
+    Sql.query ~db ~sql:"SELECT NULL FROM test.sql_common_raw WHERE false" (fun res ->
       match res with
       | Belt.Result.Error e -> e |. Js.String.make |. fail |. finish
       | Belt.Result.Ok select ->
@@ -108,7 +108,7 @@ describe "Raw SQL Query Test Sequence" (fun () ->
   );
 
   testAsync "Expect an error result for an INSERT called via query" (fun finish ->
-    Sql.query ~db ~sql:"INSERT INTO test.simple (code) VALUES ('failure')" (fun res ->
+    Sql.query ~db ~sql:"INSERT INTO test.sql_common_raw (code) VALUES ('failure')" (fun res ->
       match res with
       | Belt.Result.Ok _ ->
         fail "This should have returned an InvalidResponse exception" |> finish
@@ -130,12 +130,14 @@ describe "Raw SQL Query Test Sequence" (fun () ->
       | [||] -> failwith "empty"
       | _ -> failwith "unknown"
     in
+    let sql = "SELECT * FROM test.sql_common_raw WHERE test.sql_common_raw.id = ?"
+    in
     let params =
       Json.Encode.array Json.Encode.int [| 1 |]
       |. Sql.Params.positional
       |. Some
     in
-    Sql.query ~db ~sql:"SELECT * FROM test.simple WHERE test.simple.id = ?" ?params
+    Sql.query ~db ~sql ?params
     (fun res ->
       match res with
       | Belt.Result.Error e -> e |. Js.String.make |. fail |. finish
@@ -154,7 +156,7 @@ describe "Raw SQL Query Test Sequence" (fun () ->
      id = json |> field "id" int;
      code = json |> field "code" string;
     }) in
-    Sql.query ~db ~sql:"SELECT * FROM test.simple" (fun res ->
+    Sql.query ~db ~sql:"SELECT * FROM test.sql_common_raw" (fun res ->
       match res with
       | Belt.Result.Error e -> e |. Js.String.make |. fail |. finish
       | Belt.Result.Ok select ->

@@ -28,9 +28,10 @@ module Make(Driver: Queryable) = struct
     let response t = t.response
 
     let current t =
-      Belt.Array.slice t.params ~offset:t.cursor ~len:t.batch_size
+      [| Belt.Array.slice t.params ~offset:t.cursor ~len:t.batch_size |]
 
-    let hasMore t = t.cursor < (Belt.Array.length t.params) - 1
+    let hasMore t =
+      t.cursor < (Belt.Array.length t.params)
   end
 
   let execute ~driver ~sql ~params resolver =
@@ -64,7 +65,6 @@ module Make(Driver: Queryable) = struct
     match response with
     | Belt.Result.Error _ -> response |. resolver
     | Belt.Result.Ok tracker ->
-        let _ = Js.log3 "HAS MORE: " tracker (Tracker.hasMore tracker) in
         match (tracker |. Tracker.hasMore) with
         | false -> response |. resolver
         | true -> iterate ~driver ~sql ~tracker next
@@ -87,12 +87,7 @@ module Make(Driver: Queryable) = struct
         |. callback
       )
       in
-      match (Batch.Params.ensure_single_substitution_param json) with
-      | true -> run ~driver ~sql ~resolver tracker |. ignore
-      | false ->
-          Exn.Invalid.Query.illegal_use_of_multiple_params
-          |. Belt.Result.Error
-          |. callback
+      run ~driver ~sql ~resolver tracker |. ignore
 
 
 end

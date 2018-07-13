@@ -18,14 +18,3 @@ module Sql = struct
       {j| INSERT INTO $table (??) VALUES ?|j}
       [| columns; rows |]
 end
-
-module Params = struct
-  (*
-   * For batched queries we only allow a single substitution parameter.
-   * @TODO - remove this restriction
-   *)
-  let ensure_single_substitution_param json =
-    match (json |. Belt.Array.length) with
-    | 1 -> true
-    | _ -> false
-end

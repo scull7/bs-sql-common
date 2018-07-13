@@ -121,6 +121,7 @@ module Make(Driver: Queryable): sig
         table:string ->
         columns:string array ->
         rows:Js.Json.t array ->
+        unit ->
         int Js.Promise.t
 
       val query :
@@ -128,6 +129,7 @@ module Make(Driver: Queryable): sig
         ?batch_size:int ->
         sql:string ->
         params:[`Positional of Js.Json.t array ] ->
+        unit ->
         Driver.Select.t Js.Promise.t
     end
   end

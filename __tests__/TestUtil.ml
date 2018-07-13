@@ -10,7 +10,7 @@ let connect _ = Sql.Connection.connect
 let mutate db sql next =
   Sql.mutate ~db ~sql (fun res ->
     match res with
-    | Belt.Result.Error e -> e |. raise
+    | Belt.Result.Error e -> e |. Js.String.make |. failwith
     | Belt.Result.Ok _ -> next ()
   )
   |. ignore

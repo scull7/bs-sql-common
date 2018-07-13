@@ -15,7 +15,7 @@ type simple = {
 
 let get_result { result } = result
 
-let expect name value decoder next res =
+let expect value decoder next res =
   match res with
   | Belt.Result.Error e -> e |. Js.String.make |. fail |. next
   | Belt.Result.Ok select ->
@@ -40,7 +40,7 @@ describe "Test parameter interpolation" (fun () ->
   describe "Standard (positional) parameters" (fun () ->
     let name = "Expect parameters to be substituted properly" in
     testAsync name (fun finish ->
-      let next = expect name 12 decoder finish in
+      let next = expect 12 decoder finish in
       let params =
         Json.Encode.array Json.Encode.int [| 5; 6; |]
         |. Sql.Params.positional
@@ -53,36 +53,15 @@ describe "Test parameter interpolation" (fun () ->
   describe "Named parameters" (fun () ->
     let name = "Expect parameters to be substituted properly" in
     testAsync name (fun finish ->
-      let next = expect name 3 decoder finish in
+      let next = expect 3 decoder finish in
       let json = Json.Encode.(object_ [
         ("x", int 1);
         ("y", int 2);
       ])
       in
-      let params = Some(Sql.Params.positional json)
+      let params = Some(Sql.Params.named json)
       in
       Sql.query ~db ~sql:"SELECT :x + :y AS result" ?params next
-    )
-  );
-
-  testAsync "Expect a SELECT with two parameters to fail if not batched"
-  (fun finish ->
-    let params =
-      [| [| 1; 2; |] |]
-      |> Json.Encode.array (Json.Encode.array Json.Encode.int)
-      |. Sql.Params.positional
-      |. Some
-    in
-    let sql = "SELECT * FROM test.simple WHERE test.simple.id IN (?)"
-    in
-    Sql.query ~db ~sql ?params (fun res ->
-      match res with
-      | Belt.Result.Ok _ ->
-          fail "A select with an IN should have been rejected." |. finish
-      | Belt.Result.Error e ->
-        match e with
-        | SqlCommon.Exn.InvalidQuery _ -> pass |. finish
-        | e -> e |. Js.String.make |. fail |. finish
     )
   );
 
@@ -96,7 +75,7 @@ describe "Test parameter interpolation" (fun () ->
     in
     let sql = "SELECT * FROM test.simple WHERE test.simple.id IN (?)"
     in
-    let params = `Positional(jsonIntMatrix [| [| 1; 2; |] |])
+    let params = `Positional(Belt.Array.map [| 1; 2; |] Json.Encode.int)
     in
     let batch_size = 10
     in
@@ -122,7 +101,7 @@ describe "Test parameter interpolation" (fun () ->
     in
     let sql = "SELECT * FROM test.simple WHERE test.simple.id IN (?)"
     in
-    let params = `Positional(jsonIntMatrix [| [| 1; 2; 3; |] |])
+    let params = `Positional(Belt.Array.map [| 1; 2; 3; |] Json.Encode.int)
     in
     let batch_size = 2
     in
@@ -135,33 +114,6 @@ describe "Test parameter interpolation" (fun () ->
         |. Expect.expect
         |> Expect.toHaveLength 3
         |. finish
-    )
-  );
-
-  (* I am unsure if this should match on an error code (not implemented), simply 'ERR_INVALID_QUERY', or a detailed error message *)
-  testAsync "Expect a SELECT with two positional parameters for two variable substitutions to succeed if batched"
-  (fun finish ->
-    let sql = {|
-      SELECT *
-      FROM test.simple
-      WHERE test.simple.id IN (?)
-      AND test.simple.number IN (?)
-    |}
-    in
-    let params = `Positional(
-      jsonIntMatrix [| [| 1; 2; |]; [| 111; 222;|]; |]
-    )
-    in
-    let batch_size = 10 in
-    Sql.Batch.query ~db ~batch_size ~sql ~params (fun res ->
-    match res with
-    | Belt.Result.Ok _ ->
-      fail "A select with two parameters should have been rejected." |. finish
-    | Belt.Result.Error e ->
-      match e with
-      | SqlCommon.Exn.Invalid.Query.IllegalUseOfMultipleParams _ ->
-          pass |. finish
-      | e -> e |. Js.String.make |. fail |. finish
     )
   );
 
