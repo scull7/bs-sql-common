@@ -30,6 +30,8 @@ module Make(Driver: Queryable): sig
   end
 
   module Params : sig
+    type t = Driver.Params.t
+
     val named : Js.Json.t -> Driver.Params.t
 
     val positional : Js.Json.t -> Driver.Params.t

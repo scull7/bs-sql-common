@@ -21,6 +21,8 @@ module Make(Driver: Queryable) = struct
   end
 
   module Params = struct
+    type t = Driver.Params.t
+
     let named = Driver.Params.named
 
     let positional = Driver.Params.positional
