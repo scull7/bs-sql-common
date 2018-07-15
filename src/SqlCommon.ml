@@ -30,13 +30,19 @@ module Make(Driver: Queryable) = struct
 
   module Response = struct
     module Mutation = struct
+      type t = Driver.Mutation.t
+
       let insertId = Driver.Mutation.insertId
 
       let affectedRows = Driver.Mutation.affectedRows
     end
 
     module Select = struct
+      type t = Driver.Select.t
+
       module Meta = struct
+        type t = Driver.Select.Meta.t
+
         let schema = Driver.Select.Meta.schema
 
         let name = Driver.Select.Meta.name

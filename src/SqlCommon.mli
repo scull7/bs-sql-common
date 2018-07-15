@@ -39,13 +39,19 @@ module Make(Driver: Queryable): sig
 
   module Response: sig
     module Mutation: sig
+      type t
+
       val insertId : Driver.Mutation.t -> Id.t option
 
       val affectedRows: Driver.Mutation.t -> int
     end
 
     module Select: sig
+      type t
+
       module Meta : sig
+        type t
+
         val schema : Driver.Select.Meta.t -> string
 
         val name : Driver.Select.Meta.t -> string
