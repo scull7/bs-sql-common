@@ -1,6 +1,6 @@
 {
   "name": "bs-sql-common",
-  "version": "4.4.0",
+  "version": "5.0.0",
   "description": "A common interface common for SQL drivers.",
   "scripts": {
     "build": "bsb -make-world",
