@@ -5,9 +5,9 @@ module type Queryable = SqlCommon_queryable.Queryable
 module Make(Driver: Queryable): sig
 
   module Connection: sig
-    type t
+    type t = Driver.Connection.t
 
-    val close: Driver.Connection.t -> unit
+    val close: t -> unit
 
     val connect :
       ?host:string ->
@@ -15,84 +15,84 @@ module Make(Driver: Queryable): sig
       ?user:string ->
       ?password:string ->
       ?database:string ->
-      unit -> Driver.Connection.t
+      unit -> t
 
   end
 
   module Id: sig
     type t = Driver.Id.t
 
-    val fromJson : Js.Json.t -> Driver.Id.t
+    val fromJson : Js.Json.t -> t
 
-    val toJson : Driver.Id.t -> Js.Json.t
+    val toJson : t -> Js.Json.t
 
-    val toString : Driver.Id.t -> string
+    val toString : t -> string
   end
 
   module Params : sig
     type t = Driver.Params.t
 
-    val named : Js.Json.t -> Driver.Params.t
+    val named : Js.Json.t -> t
 
-    val positional : Js.Json.t -> Driver.Params.t
+    val positional : Js.Json.t -> t
   end
 
   module Response: sig
     module Mutation: sig
-      type t
+      type t = Driver.Mutation.t
 
-      val insertId : Driver.Mutation.t -> Id.t option
+      val insertId : t -> Id.t option
 
-      val affectedRows: Driver.Mutation.t -> int
+      val affectedRows: t -> int
     end
 
     module Select: sig
-      type t
+      type t = Driver.Select.t
 
       module Meta : sig
-        type t
+        type t = Driver.Select.Meta.t
 
-        val schema : Driver.Select.Meta.t -> string
+        val schema : t -> string
 
-        val name : Driver.Select.Meta.t -> string
+        val name : t -> string
 
-        val table : Driver.Select.Meta.t -> string
+        val table : t -> string
       end
 
-      val meta : Driver.Select.t -> Driver.Select.Meta.t array
+      val meta :t -> Meta.t array
 
-      val concat : Driver.Select.t -> Driver.Select.t -> Driver.Select.t
+      val concat : t -> t -> t
 
-      val count : Driver.Select.t -> int
+      val count : t -> int
 
       val flatMapWithMeta :
-        Driver.Select.t ->
-        (Js.Json.t -> Driver.Select.Meta.t array -> 'a) ->
+        t ->
+        (Js.Json.t -> Meta.t array -> 'a) ->
         'a array
 
-      val flatMap : Driver.Select.t -> (Js.Json.t -> 'a) -> 'a array
+      val flatMap : t -> (Js.Json.t -> 'a) -> 'a array
 
-      val rows : Driver.Select.t -> Js.Json.t array
+      val rows : t -> Js.Json.t array
     end
   end
 
   val mutate :
-    db:Driver.Connection.t ->
+    db:Connection.t ->
     sql:string ->
-    ?params:Driver.Params.t ->
-    ((Driver.Mutation.t, exn) Belt.Result.t -> unit) ->
+    ?params:Params.t ->
+    ((Response.Mutation.t, exn) Belt.Result.t -> unit) ->
     unit
 
   val query :
-    db:Driver.Connection.t ->
+    db:Connection.t ->
     sql:string ->
-    ?params:Driver.Params.t ->
-    ((Driver.Select.t, exn) Belt.Result.t -> unit) ->
+    ?params:Params.t ->
+    ((Response.Select.t, exn) Belt.Result.t -> unit) ->
     unit
 
   module Batch: sig
     val mutate :
-      db:Driver.Connection.t ->
+      db:Connection.t ->
       ?batch_size:int ->
       table:string ->
       columns: string array ->
@@ -101,32 +101,32 @@ module Make(Driver: Queryable): sig
       unit
   
     val query :
-      db:Driver.Connection.t ->
+      db:Connection.t ->
       ?batch_size:int ->
       sql:string ->
       params:[`Positional of Js.Json.t array ] ->
-      ((Driver.Select.t, exn) Belt.Result.t -> unit) ->
+      ((Response.Select.t, exn) Belt.Result.t -> unit) ->
       unit
   end
 
   module Promise: sig
 
     val mutate :
-      db:Driver.Connection.t ->
-      ?params:Driver.Params.t ->
+      db:Connection.t ->
+      ?params:Params.t ->
       sql:string ->
-      Driver.Mutation.t Js.Promise.t
+      Response.Mutation.t Js.Promise.t
 
     val query :
-      db:Driver.Connection.t ->
-      ?params:Driver.Params.t ->
+      db:Connection.t ->
+      ?params:Params.t ->
       sql:string ->
-      Driver.Select.t Js.Promise.t
+      Response.Select.t Js.Promise.t
 
     module Batch: sig
 
       val mutate :
-        db:Driver.Connection.t ->
+        db:Connection.t ->
         ?batch_size:int ->
         table:string ->
         columns:string array ->
@@ -135,12 +135,12 @@ module Make(Driver: Queryable): sig
         int Js.Promise.t
 
       val query :
-        db:Driver.Connection.t ->
+        db:Connection.t ->
         ?batch_size:int ->
         sql:string ->
         params:[`Positional of Js.Json.t array ] ->
         unit ->
-        Driver.Select.t Js.Promise.t
+        Response.Select.t Js.Promise.t
     end
   end
 end
