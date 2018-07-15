@@ -96,7 +96,8 @@ module Make(Driver: Queryable): sig
       ?batch_size:int ->
       table:string ->
       columns: string array ->
-      rows:Js.Json.t array ->
+      encoder:('a -> Js.Json.t array) ->
+      rows:'a array ->
       ((int, exn) Belt.Result.t -> unit) ->
       unit
   
@@ -130,7 +131,8 @@ module Make(Driver: Queryable): sig
         ?batch_size:int ->
         table:string ->
         columns:string array ->
-        rows:Js.Json.t array ->
+        encoder:('a -> Js.Json.t array) ->
+        rows:'a array ->
         unit ->
         int Js.Promise.t
 

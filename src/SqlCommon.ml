@@ -73,12 +73,13 @@ module Make(Driver: Queryable) = struct
 
   module Batch = struct
 
-    let mutate ~db ?batch_size ~table ~columns ~rows callback =
+    let mutate ~db ?batch_size ~table ~columns ~encoder ~rows callback =
       BatchMutate.start
         ~driver:(Callback.Mutate.run db ?params:None)
         ?batch_size
         ~table
         ~columns
+        ~encoder
         ~rows
         callback
 
@@ -100,13 +101,14 @@ module Make(Driver: Queryable) = struct
     let query ~db ?params ~sql = Internal.Select.run db ?params ~sql
 
     module Batch = struct
-      let mutate ~db ?batch_size ~table ~columns ~rows _ =
+      let mutate ~db ?batch_size ~table ~columns ~encoder ~rows _ =
         Js.Promise.make (fun ~resolve ~reject ->
           BatchMutate.start
             ~driver:(Callback.Mutate.run db ?params:None)
             ?batch_size
             ~table
             ~columns
+            ~encoder
             ~rows
             (fun res ->
               match res with

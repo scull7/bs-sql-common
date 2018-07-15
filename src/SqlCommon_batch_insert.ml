@@ -59,12 +59,16 @@ module Make(Driver: Queryable) = struct
    * ## Start
    * Initiate the insert loop.
    *)
-  let start ~driver ?batch_size ~table ~columns ~rows callback =
+  let start ~driver ?batch_size ~table ~columns ~encoder ~rows callback =
     let batch_size = Batch.size batch_size in
     let columns = Js.Json.stringArray columns in
 
     let insert ~rows next =
-      let rows = Js.Json.array rows in
+      let rows =
+        rows
+        |. Belt.Array.map (fun r -> r |. encoder |. Js.Json.array)
+        |. Js.Json.array
+      in
       execute ~driver ~sql:(Batch.Sql.insert table columns rows) next
     in
     let resolver res =

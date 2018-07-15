@@ -17,40 +17,43 @@ let table_sql = {j|
 let initialize db next =
   TestUtil.drop db "sql_common_batch" (fun _ -> TestUtil.mutate db table_sql next)
 
-let single_run_rows = Json.Encode.([|
-  jsonArray [| (string "yankees"); (string "mlb") |];
-  jsonArray [| (string "buckeyes"); (string "ncaa") |];
-  jsonArray [| (string "steelers"); (string "nfl") |];
-|])
+let encoder (team, league) = Json.Encode.([| (string team); (string league) |])
 
-let multiple_run_rows = Json.Encode.([|
-  jsonArray [| (string "juventas"); (string "fifa") |];
-  jsonArray [| (string "caviliers"); (string "nba") |];
-  jsonArray [| (string "49ers"); (string "nfl") |];
-  jsonArray [| (string "bulls"); (string "nba") |];
-  jsonArray [| (string "penguins"); (string "ncaa") |];
-  jsonArray [| (string "golden_knights"); (string "nhl") |];
-  jsonArray [| (string "colts"); (string "nfl") |];
-  jsonArray [| (string "saints"); (string "nfl") |];
-  jsonArray [| (string "indians"); (string "mlb") |];
-  jsonArray [| (string "browns"); (string "nfl") |];
-|])
+let single_run_rows = [|
+  ("yankees", "mlb");
+  ("buckeyes", "ncaa");
+  ("steelers", "nfl");
+|]
 
-let callback_run_rows = Json.Encode.([|
-  jsonArray [| (string "crew"); (string "mls") |];
-  jsonArray [| (string "real"); (string "mls") |];
-  jsonArray [| (string "fire"); (string "mls") |];
-  jsonArray [| (string "impact"); (string "mls") |];
-|])
+let multiple_run_rows = [|
+  ("juventas", "fifa");
+  ("caviliers", "nba");
+  ("49ers", "nfl");
+  ("bulls", "nba");
+  ("penguins", "ncaa");
+  ("golden_knights", "nhl");
+  ("colts", "nfl");
+  ("saints", "nfl");
+  ("indians", "mlb");
+  ("browns", "nfl");
+|]
 
-let failure_run_rows = Json.Encode.([|
-  jsonArray [| (string "stampeders"); (string "cfl") |];
-  jsonArray [| (string "roughriders"); (string "cfl") |];
-  jsonArray [| (string "eskimos"); (string "cfl") |];
-  jsonArray [| (string "eskimos"); (string "failure") |];
-  jsonArray [| (string "argonauts"); (string "cfl") |];
-  jsonArray [| (string "alouettes"); (string "cfl") |];
-|])
+
+let callback_run_rows = [|
+  ("crew", "mls");
+  ("real", "mls");
+  ("fire", "mls");
+  ("impact", "mls");
+|]
+
+let failure_run_rows = [|
+  ("stampeders", "cfl");
+  ("roughriders", "cfl");
+  ("eskimos", "cfl");
+  ("eskimos", "failure");
+  ("argonauts", "cfl");
+  ("alouettes", "cfl");
+|]
 
 let columns = [| "code"; "desc"; |]
 
@@ -78,7 +81,8 @@ describe "SqlCommon :: Batch" (fun () ->
   describe "Callback" (fun () ->
     testPromise "Should insert rows in a single batch" (fun () ->
       Js.Promise.make (fun ~resolve ~reject ->
-        Sql.Batch.mutate ~db ~table ~columns ~rows:callback_run_rows (fun res ->
+        Sql.Batch.mutate ~db ~table ~columns ~encoder ~rows:callback_run_rows
+        (fun res ->
           match res with
           | Belt.Result.Error e -> reject e [@bs]
           | Belt.Result.Ok int ->
@@ -93,7 +97,7 @@ describe "SqlCommon :: Batch" (fun () ->
 
   describe "Promise" (fun () ->
     testPromise "Should rollback" (fun () ->
-      Sql.Promise.Batch.mutate ~db ~table ~columns ~rows:failure_run_rows ()
+      Sql.Promise.Batch.mutate ~db ~table ~columns ~encoder ~rows:failure_run_rows ()
       |> Js.Promise.then_ (fun _ ->
         "unexpected success" |. fail |. Js.Promise.resolve
       )
@@ -115,7 +119,7 @@ describe "SqlCommon :: Batch" (fun () ->
     );
 
     testPromise "Should insert rows in a single batch" (fun () ->
-      Sql.Promise.Batch.mutate ~db ~table ~columns ~rows:single_run_rows ()
+      Sql.Promise.Batch.mutate ~db ~table ~columns ~encoder ~rows:single_run_rows ()
       |> Js.Promise.then_ (fun int ->
          Expect.expect int
          |> Expect.toBe 3
@@ -129,6 +133,7 @@ describe "SqlCommon :: Batch" (fun () ->
         ~batch_size:3
         ~table
         ~columns
+        ~encoder
         ~rows:multiple_run_rows
         ()
       |> Js.Promise.then_ (fun int ->
