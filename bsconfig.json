@@ -1,6 +1,6 @@
 {
   "name": "bs-sql-common",
-  "version": "5.0.0",
+  "version": "5.0.1",
   "package-specs": {
     "module": "commonjs",
     "in-source": true
