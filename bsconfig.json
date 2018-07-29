@@ -18,6 +18,7 @@
   ],
   "bs-dependencies": [
     "bs-mysql2",
+    "@buckeye/bs-tarn",
     "@glennsl/bs-json"
   ],
   "bsc-flags": [

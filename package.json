@@ -38,6 +38,7 @@
   "author": "Nathan Sculli <scull7@gmail.com>",
   "license": "MIT",
   "dependencies": {
+    "@buckeye/bs-tarn": "^1.0.0",
     "@glennsl/bs-json": "^2.0.0",
     "sqlstring": "^2.3.1"
   },

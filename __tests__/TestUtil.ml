@@ -7,6 +7,12 @@ let connect _ = Sql.Connection.connect
   ~user:"root"
   ()
 
+let pool _ = Sql.Pool.make
+  ~host:"127.0.0.1"
+  ~port:3306
+  ~user:"root"
+  ()
+
 let mutate db sql next =
   Sql.mutate ~db ~sql (fun res ->
     match res with
