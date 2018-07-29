@@ -16,6 +16,12 @@
     esutils "^2.0.2"
     js-tokens "^3.0.0"
 
+"@buckeye/bs-tarn@^1.0.0":
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/@buckeye/bs-tarn/-/bs-tarn-1.0.0.tgz#69fba5cc91077be73cb065b6388968f5e5816636"
+  dependencies:
+    tarn "^1.1.4"
+
 "@glennsl/bs-jest@^0.4.2":
   version "0.4.2"
   resolved "https://registry.yarnpkg.com/@glennsl/bs-jest/-/bs-jest-0.4.2.tgz#c8bd899aca0feae5927f4778cbdeb4c46bb2eef9"
@@ -3620,6 +3626,10 @@ tar@^2.2.1:
     block-stream "*"
     fstream "^1.0.2"
     inherits "2"
+
+tarn@^1.1.4:
+  version "1.1.4"
+  resolved "https://registry.yarnpkg.com/tarn/-/tarn-1.1.4.tgz#aeeb85964b1afa0bbf381359c1167df237c27b6a"
 
 test-exclude@^4.1.1, test-exclude@^4.2.0:
   version "4.2.1"

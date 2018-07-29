@@ -10,6 +10,8 @@ module Make(Driver: Queryable) = struct
 
   module Connection = Driver.Connection
 
+  module Pool = SqlCommon_pool.Make(Driver)
+
   module Id = struct
     type t = Driver.Id.t
 
