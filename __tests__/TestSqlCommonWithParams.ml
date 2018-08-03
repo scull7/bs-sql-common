@@ -139,4 +139,28 @@ describe "Test parameter interpolation" (fun () ->
       | e -> e |. Js.String.make |. fail |. finish
     )
   );
+
+  testAsync "Expect a mutation result for an INSERT query" 
+  (fun finish ->
+    let sql = {|
+    # the word in, in comments used to cause valid mutations to fail
+    /* 
+      multi-line comment 1, in
+    */
+    INSERT INTO test.sql_common_raw (code) VALUES ('bar'), ('baz') # single in-line comment, in
+    /* multi-line comment 2, in */
+    |}
+    in
+    Sql.mutate ~db ~sql:sql
+    (fun resp ->
+      match resp with
+      | Belt.Result.Error e -> e |. Js.String.make |. fail |. finish
+      | Belt.Result.Ok mutation ->
+        mutation
+        |. Sql.Response.Mutation.affectedRows
+        |. Expect.expect
+        |> Expect.toBe 2
+        |. finish
+    )
+  );
 );
