@@ -1,4 +1,4 @@
-let commentsRe = [%re "/\/\*[\s\S]*?\*\/|([^#:]|^)#.*$/gm"]
+let commentsRe = [%re {|/(\/\*[\s\S]*?\*\/)|([^#:]|^)#.*$|(COMMENT ".*(.*)")/gmi|}]
 let inRe = [%re "/\\bin\\b/i"]
 
 let contains_in sql = 

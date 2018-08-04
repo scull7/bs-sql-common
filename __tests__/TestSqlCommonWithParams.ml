@@ -139,15 +139,44 @@ describe "Test parameter interpolation" (fun () ->
       | e -> e |. Js.String.make |. fail |. finish
     )
   );
+);
 
-  testAsync "Expect a mutation result for an INSERT query" 
+describe "Comments should be handled correctly and not throw errors if they contain the word 'in'" (fun () ->
+  let db = TestUtil.connect () in
+  let table_sql = {|
+    CREATE TABLE test.foo (
+        id int(11) unsigned NOT NULL AUTO_INCREMENT
+      , comment varchar(25) NOT NULL COMMENT "This may contain the in word"
+      , PRIMARY KEY(id)
+      , UNIQUE KEY (comment) COMMENT "Search in here also"
+    ) COMMENT "And search in here also";
+  |}
+  in
+  let drop next =
+    let _ = Sql.mutate ~db ~sql:"DROP TABLE IF EXISTS test.foo" (fun resp ->
+      match resp with
+      | Belt.Result.Error e -> let _ = Js.log2 "DROP FAILED: " e in raise e
+      | Belt.Result.Ok _ -> next ()
+    ) in ()
+  in
+  let create next =
+    let _ = Sql.mutate ~db ~sql:table_sql (fun resp ->
+      match resp with
+      | Belt.Result.Error e -> let _ = Js.log2 "CREATE FAILED: " e in raise e
+      | Belt.Result.Ok _ -> next ()
+    ) in ()
+  in
+  let _ = beforeAllAsync (fun finish ->
+    drop (fun _ -> create finish))
+  in
+  testAsync "Expect a valid mutation with 'in' in it's comments to INSERT successfully" 
   (fun finish ->
     let sql = {|
     # the word in, in comments used to cause valid mutations to fail
     /* 
       multi-line comment 1, in
     */
-    INSERT INTO test.sql_common_raw (code) VALUES ('bar'), ('baz') # single in-line comment, in
+    INSERT INTO test.foo (comment) VALUES ('bar'), ('baz') # single in-line comment, in
     /* multi-line comment 2, in */
     |}
     in
