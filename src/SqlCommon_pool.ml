@@ -37,7 +37,7 @@ module type Pool = sig
 end
 
 module Make(Driver: Queryable): Pool with type t = Tarn.t = struct
-  
+
   type t = Tarn.t
 
   let make
@@ -61,7 +61,7 @@ module Make(Driver: Queryable): Pool with type t = Tarn.t = struct
       cb Js.Nullable.null (Js.Nullable.return c)
     )
     in
-    let validate _ = true
+    let validate = Driver.Connection.isValid
     in
     let destroy connection = Driver.Connection.close connection
     in

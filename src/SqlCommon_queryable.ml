@@ -10,11 +10,19 @@ module type Queryable = sig
       ?database:string ->
       unit -> t
 
+    val isValid : t -> bool
+
     val close : t -> unit
   end
 
   module Exn : sig
-    val fromJs : Js.Json.t -> exn
+    type t
+
+    val fromJs : Js.Json.t -> t
+
+    val toExn : t -> exn
+
+    val fromJsToExn : Js.Json.t -> exn
   end
 
   module Id : sig
@@ -71,7 +79,7 @@ module type Queryable = sig
 
   type response =
     [
-    | `Error of exn
+    | `Error of Exn.t
     | `Mutation of Mutation.t
     | `Select of Select.t
     ]

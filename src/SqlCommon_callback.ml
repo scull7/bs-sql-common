@@ -13,7 +13,7 @@ module Make (Driver: Queryable) = struct
       match res with
       | `Select select -> select |. Belt.Result.Ok |. cb
       | `Mutation _ -> Exn_response.expected_select |. Belt.Result.Error |. cb
-      | `Error e -> e |. Belt.Result.Error |. cb
+      | `Error e -> e |. Driver.Exn.toExn |. Belt.Result.Error |. cb
       )
 
     let query db ?params ~sql cb = raw db ~sql ?params cb
@@ -25,7 +25,7 @@ module Make (Driver: Queryable) = struct
         match res with
         | `Mutation mutation -> mutation |. Belt.Result.Ok |. cb
         | `Select _ -> Exn_response.expected_mutation |. Belt.Result.Error |. cb
-        | `Error e -> e |. Belt.Result.Error |. cb
+        | `Error e -> e |. Driver.Exn.toExn |. Belt.Result.Error |. cb
       )
 
     let run db ?params ~sql cb =
