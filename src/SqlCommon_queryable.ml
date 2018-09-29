@@ -15,6 +15,32 @@ module type Queryable = sig
     val close : t -> unit
   end
 
+  module Pool : sig
+    type t
+
+    val on :
+      t ->
+      [
+        | `acquire of Connection.t -> unit
+        | `enqueue of unit -> unit
+        | `release of Connection.t -> unit
+      ]
+      -> t
+
+    val drain : t -> (Js.Exn.t Js.Null_undefined.t -> unit) -> unit
+
+    val getConnection :
+      t ->
+      (
+        Js.Exn.t Js.Null_undefined.t ->
+        Connection.t Js.Null_undefined.t ->
+        unit
+      ) ->
+      unit
+
+    val release : Connection.t -> unit
+  end
+
   module Exn : sig
     type t
 

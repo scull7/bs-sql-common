@@ -21,36 +21,15 @@ module Make(Driver: Queryable): sig
 
   module Pool : sig
 
-    type t = Tarn.t
+    type t = Driver.Pool.t
 
-    val make :
-      ?min:int ->
-      ?max:int ->
-      ?acquireTimeoutMillis:int ->
-      ?createTimeoutMillis:int ->
-      ?idleTimeoutMillis:int ->
-      ?reapIntervalMillis:int ->
-      ?propagateCreateError:bool ->
-      ?host:string ->
-      ?port:int ->
-      ?user:string ->
-      ?password:string ->
-      ?database:string ->
-      unit -> t
+    type connection = Driver.Connection.t
 
-    val acquire : t -> (Connection.t, exn) Belt.Result.t Js.Promise.t
+    val acquire : t -> connection Js.Promise.t
 
     val destroy : t -> unit Js.Promise.t
 
-    val release : t -> Connection.t -> unit
-
-    val numUsed : t -> int
-
-    val numFree : t -> int
-
-    val numPendingAcquires : t -> int
-
-    val numPendingCreates : t -> int
+    val release : t -> connection -> unit Js.Promise.t
 
   end
 
@@ -135,7 +114,7 @@ module Make(Driver: Queryable): sig
       rows:'a array ->
       ((int, exn) Belt.Result.t -> unit) ->
       unit
-  
+
     val query :
       db:Connection.t ->
       ?batch_size:int ->

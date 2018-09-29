@@ -2,37 +2,18 @@ module type Queryable = SqlCommon_queryable.Queryable
 
 module type Pool = sig
 
-  type t = Tarn.t
+  type t
 
-  val make :
-    ?min:int ->
-    ?max:int ->
-    ?acquireTimeoutMillis:int ->
-    ?createTimeoutMillis:int ->
-    ?idleTimeoutMillis:int ->
-    ?reapIntervalMillis:int ->
-    ?propagateCreateError:bool ->
-    ?host:string ->
-    ?port:int ->
-    ?user:string ->
-    ?password:string ->
-    ?database:string ->
-    unit -> t
+  type connection
 
-  val acquire : t -> ('a, exn) Belt.Result.t Js.Promise.t
+  val acquire : t -> connection Js.Promise.t
 
   val destroy : t -> unit Js.Promise.t
 
-  val release : t -> 'a -> unit
-
-  val numUsed : t -> int
-
-  val numFree : t -> int
-
-  val numPendingAcquires : t -> int
-
-  val numPendingCreates : t -> int
+  val release : t -> connection -> unit Js.Promise.t
 
 end
 
 module Make(Driver: Queryable): Pool
+  with type t = Driver.Pool.t
+  with type connection = Driver.Connection.t

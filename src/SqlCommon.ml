@@ -98,7 +98,7 @@ module Make(Driver: Queryable) = struct
   module Promise = struct
     module Internal = SqlCommon_promise.Make(Driver)
 
-    let mutate ~db ?params ~sql = Internal.Mutate.run db ?params ~sql 
+    let mutate ~db ?params ~sql = Internal.Mutate.run db ?params ~sql
 
     let query ~db ?params ~sql = Internal.Select.run db ?params ~sql
 

@@ -7,7 +7,7 @@ let connect _ = Sql.Connection.connect
   ~user:"root"
   ()
 
-let pool _ = Sql.Pool.make
+let pool _ = MySql2.Pool.make
   ~host:"127.0.0.1"
   ~port:3306
   ~user:"root"

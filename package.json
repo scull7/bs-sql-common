@@ -40,11 +40,12 @@
   "dependencies": {
     "@buckeye/bs-tarn": "^1.0.0",
     "@glennsl/bs-json": "^2.0.0",
+    "bs-node-debug": "^0.2.0",
     "sqlstring": "^2.3.1"
   },
   "devDependencies": {
     "@glennsl/bs-jest": "^0.4.2",
-    "bs-mysql2": "8.1.0",
+    "bs-mysql2": "8.2.1",
     "bs-platform": "^4.0.1",
     "coveralls": "^3.0.1",
     "husky": "^0.14.3",

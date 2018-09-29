@@ -18,6 +18,7 @@
   ],
   "bs-dependencies": [
     "bs-mysql2",
+    "bs-node-debug",
     "@buckeye/bs-tarn",
     "@glennsl/bs-json"
   ],
