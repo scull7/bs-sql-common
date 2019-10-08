@@ -157,7 +157,7 @@ describe "Raw SQL Query Test Sequence" (fun () ->
   );
 
   testAsync "Rollback batch insert on duplicate key" (fun finish ->
-    let id_0 = string_of_int (Js.Math.random_int Js.Int.min Js.Int.max) in
+    let id_0 = string_of_int (Js.Math.random_int 0 (Js.Int.max - 1)) in
     let code_0 = {j|unique-value-$id_0|j} in
     let sql = "INSERT INTO test.simple (id, code) VALUES (?, ?)" in
     let params = `Positional (Json.Encode.array Json.Encode.string [| id_0; code_0 |]) in
@@ -165,14 +165,15 @@ describe "Raw SQL Query Test Sequence" (fun () ->
       match res with
       | `Error e -> let _ = Js.log e in finish (fail "see log")
       | `Mutation (_, _) ->
-        let id_1 = string_of_int (Js.Math.random_int Js.Int.min Js.Int.max) in
+        let id_1 = string_of_int (Js.Math.random_int 0 (Js.Int.max - 1)) in
         let code_1 = {j|unique-value-$id_1|j} in
         let batch_size = 1 in
         let table = "test.simple" in
         let columns = Belt.Array.map [|"id"; "code"|] Json.Encode.string in 
+        (* order is important here *)
         let rows = Belt.Array.map [|
           Json.Encode.array Json.Encode.string [| id_1; code_1 |];
-          Json.Encode.array Json.Encode.string [| id_0; code_0 |]
+          Json.Encode.array Json.Encode.string [| id_0; code_0 |];
         |] (fun a -> a) in
         Sql.mutate_batch conn ~batch_size ~table ~columns ~rows (fun res ->
           match res with
