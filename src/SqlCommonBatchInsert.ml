@@ -67,7 +67,12 @@ let insert execute ?batch_size ~table ~columns ~rows user_cb =
     | None -> 1000
     | Some(s) -> s
   in
-  let fail = (fun e -> user_cb (`Error e)) in
+  let fail = (fun err -> rollback ~execute
+    ~fail:(fun err -> user_cb (`Error err))
+    ~ok:(fun _ _ -> user_cb (`Error err))
+    ()
+  )
+  in
   let complete = (fun count id ->
     let ok = (fun _ _ -> user_cb (`Mutation (count, id)))
     in
