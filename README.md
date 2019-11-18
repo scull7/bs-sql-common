@@ -39,7 +39,7 @@ several production projects.
 
 Inside of a BuckleScript project:
 ```sh
-yarn install --save bs-sql-common
+yarn add bs-sql-common
 ```
 
 Then add `bs-sql-common` to your `bs-dependencies` in your `bsconfig.json`
@@ -54,7 +54,7 @@ own. All of the examples use the [`bs-mysql2`][bs-mysql2] package, here are the
 requirements to use that package:
 
 ```sh
-yarn install --save bs-mysql2Â
+yarn add bs-mysql2
 ```
 ```json
 {
